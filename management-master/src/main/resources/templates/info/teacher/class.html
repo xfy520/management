@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" >
+<head>
+    <th:block th:include="include :: header('分配班级')" />
+    <th:block th:include="include :: bootstrap-select-css" />
+    <th:block th:include="include :: select2-css" />
+</head>
+<body>
+<div class="main-content">
+    <form id="form-class-teacher" class="form-horizontal">
+        <h4 class="form-header h4">基本信息</h4>
+        <div class="form-group">
+            <label class="col-sm-3 control-label is-required">选择年级：</label>
+            <div class="col-sm-8">
+                <select id="gradeId" class="form-control m-b" required>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label is-required">选择班级：</label>
+            <div class="col-sm-8">
+                <select id="editClassIds" class="form-control select2-multiple" multiple required>
+                </select>
+            </div>
+        </div>
+    </form>
+</div>
+
+<th:block th:include="include :: footer" />
+<th:block th:include="include :: bootstrap-select-js" />
+<th:block th:include="include :: select2-js" />
+<script th:inline="javascript">
+
+    var prefix = ctx + "info/teacher";
+
+    function submitHandler() {
+        if ($.validate.form()) {
+            var data = $("#form-class-teacher").serializeArray();
+            var classIds = $.form.selectSelects("editClassIds");
+            data.push({"name": "userId", "value": parent.$("#userId").val()});
+            data.push({"name": "classIds", "value": classIds});
+            console.log(data)
+            $.operate.save(prefix + "/class", data);
+        }
+    }
+
+    $(function () {
+        $.post(ctx + "info/grade/list", function (data) {
+            var _this = $("#gradeId");
+            _this.empty();
+            for(var i=0; i< data.rows.length;i++){
+                _this.append("<option value='"+data.rows[i].gradeId+"'>"+data.rows[i].gradeName+"</option>");
+            }
+            _this.selectpicker("refresh");
+            searchClass();
+        });
+
+        function searchClass(){
+            $.post(ctx + "info/class/search", {gradeId: $("#gradeId option:selected").val(),
+                userId: parent.$("#userId").val(), subjectId: parent.$("#subjectIds").val()}, function (data) {
+                var classIds = data.rows.map(function(obj, index, arr){
+                    return {id: obj.classId, text: obj.className, title: obj.className, selected: index == 0 ? true : false}
+                }, this);
+                $('#editClassIds').val("");
+                $("#editClassIds").attr("title","");
+                $("#editClassIds").empty();
+                $('#editClassIds').select2({
+                    data: classIds
+                });
+
+                var parentClassIds = parent.$("#classIds").val().split(",").filter(item=> {
+                    if (classIds.find(function (obj) {
+                        return obj.id == item;
+                    }) != undefined) {
+                        return item;
+                    }
+                });
+
+                parentClassIds.length != 0 ? $('#editClassIds').val(parentClassIds).trigger("change") : null;
+
+            });
+        }
+
+        $('#gradeId').on('changed.bs.select', function () {
+            searchClass();
+        });
+    });
+</script>
+</body>
+</html>

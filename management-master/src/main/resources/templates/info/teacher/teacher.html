@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('教师列表')" />
+    <th:block th:include="include :: layout-latest-css" />
+    <th:block th:include="include :: bootstrap-select-css" />
+</head>
+<body class="gray-bg">
+
+<div class="ui-layout-center">
+    <div class="container-div">
+        <input type="hidden" id="userId">
+        <input type="hidden" id="subjectIds">
+        <input type="hidden" id="classIds">
+        <div class="row">
+            <div class="col-sm-12 search-collapse">
+                <form id="teacher-form">
+                    <div class="select-list">
+                        <ul>
+                            <li>
+                                <label>科&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;目：</label>
+                                <select name="subjectId" id="subjectId">
+                                    <option th:each="sub:${subject}" th:value="${sub.subjectId}" th:text="${sub.subjectName}"></option>
+                                </select>
+                            </li>
+                            <li>
+                                登录名称：<input type="text" id="loginName" name="loginName"/>
+                            </li>
+                            <li>
+                                用户姓名：<input type="text" id="userName" name="userName"/>
+                            </li>
+                            <li class="select-time">
+                                <label>创建时间： </label>
+                                <input type="text" class="time-input" id="startTime" placeholder="开始时间" name="params[beginTime]"/>
+                                <span>-</span>
+                                <input type="text" class="time-input" id="endTime" placeholder="结束时间" name="params[endTime]"/>
+                            </li>
+                            <li>
+                                <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                                <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                            </li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+
+            <div class="btn-group-sm" id="toolbar" role="group">
+                <a class="btn btn-success" onclick="addTeacher()">
+                    <i class="fa fa-plus"></i> 新增
+                </a>
+                <a class="btn btn-primary single disabled" onclick="editTeacher()">
+                    <i class="fa fa-edit"></i> 修改
+                </a>
+                <a class="btn btn-danger multiple disabled" onclick="$.operate.removeAll()">
+                    <i class="fa fa-remove"></i> 删除
+                </a>
+                <a class="btn btn-info" onclick="$.table.importExcel()">
+                    <i class="fa fa-upload"></i> 导入
+                </a>
+                <a class="btn btn-warning" onclick="$.table.exportExcel()">
+                    <i class="fa fa-download"></i> 导出
+                </a>
+            </div>
+
+            <div class="col-sm-12 select-table table-striped">
+                <table id="bootstrap-table"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:include="include :: footer" />
+<th:block th:include="include :: layout-latest-js" />
+<th:block th:include="include :: bootstrap-select-js" />
+<script th:inline="javascript">
+    var editFlag = "";
+    var removeFlag = "";
+
+    var prefix = ctx + "info/teacher";
+
+    $(function() {
+        $("#subjectId").selectpicker({
+            "width": 100,
+            "virtualScroll": 10,
+            "liveSearch": true,
+            "size": 10
+        });
+        var panehHidden = false;
+        if ($(this).width() < 769) {
+            panehHidden = true;
+        }
+        $('body').layout({ initClosed: panehHidden, west__size: 185 });
+        $('#subjectId').selectpicker('render');
+        queryTeacherList();
+    });
+
+    $('#subjectId').on('changed.bs.select', function () {
+        $.table.search();
+    });
+
+    function queryTeacherList() {
+        var options = {
+            url: prefix + "/list",
+            updateUrl: prefix + "/edit/{id}",
+            removeUrl: prefix + "/remove",
+            exportUrl: prefix + "/export",
+            importUrl: prefix + "/importData",
+            importTemplateUrl: prefix + "/importTemplate",
+            sortName: "createTime",
+            sortOrder: "desc",
+            modalName: "教师",
+            columns: [{
+                checkbox: true
+            },
+                {
+                    field: 'userId',
+                    title: '用户ID',
+                    visible: false
+                },
+                {
+                    field: 'loginName',
+                    title: '登录名',
+                    sortable: true,
+                    align: 'center'
+                },
+                {
+                    field: 'userName',
+                    title: '姓名',
+                    align: 'center'
+                },
+                {
+                    field: 'idNumber',
+                    title: '身份证号码',
+                    align: 'center'
+                },{
+                    field: 'subjectName',
+                    title: '所任科目',
+                    align: 'center'
+                },{
+                    field: 'job',
+                    title: '职务',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        return value == 0 ? '组长' : value == 1 ? '副组长' : '科任教师';
+                    }
+                },{
+                    field: 'className',
+                    title: '所上班级',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        value = value == null ? "未分配班级" : value;
+                        var classIds = row.classIds == null ? "" : row.classIds;
+                        return tooltip(value, row.userId, classIds, row.subjectId);
+                    }
+                },
+                {
+                    field: 'addressName',
+                    title: '住址',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        return $.table.tooltip(value.substring(3));
+                    }
+                },
+                {
+                    field: 'createTime',
+                    title: '创建时间',
+                    sortable: true,
+                    align: 'center'
+                },
+                {
+                    title: '操作',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        var actions = [];
+                        actions.push('<a class="btn btn-success btn-xs ' + editFlag + '" href="javascript:void(0)" onclick="editTeacher(\'' + row.userId + '\');"><i class="fa fa-edit"></i>编辑</a> ');
+                        actions.push('<a class="btn btn-danger btn-xs ' + removeFlag + '" href="javascript:void(0)" onclick="$.operate.remove(\'' + row.userId + '\')"><i class="fa fa-remove"></i>删除</a> ');
+                        return actions.join('');
+                    }
+                }]
+        };
+        $.table.init(options);
+    }
+
+    // 列超出指定长度浮动提示 target（copy单击复制文本 open弹窗打开文本）
+    function tooltip (value, userId, classIds, subjectId) {
+        var _value = $.common.nullToStr(value);
+        var _text = _value.substr(0, 20) + "...";
+        _value = _value.replace(/\'/g,"&apos;");
+        _value = _value.replace(/\"/g,"&quot;");
+        var actions = [];
+        actions.push($.common.sprintf('<input class="tooltip-show" style="opacity: 0;position: absolute;z-index:-1" type="text" value="%s"/>', _value));
+        actions.push($.common.sprintf('<a href="javascript:void(0);" onclick="editClass(\'' + userId + '\', \'' + classIds + '\', \'' + subjectId + '\');' +
+            ' " class="tooltip-show" data-toggle="tooltip" data-target="%s" title="%s">%s</a>', 'copy', _value, _text));
+        return actions.join('');
+    }
+    
+    function editClass(userId, classIds, subjectId) {
+        $("#userId").val(userId);
+        $("#classIds").val(classIds);
+        $("#subjectIds").val(subjectId);
+        $.modal.open("分配班级", prefix + "/edit/class", 810, 450);
+    }
+
+    /* 添加教师 */
+    function addTeacher() {
+        $.modal.open("添加 " + $("#subjectId option:selected").text() + " 科目教师", prefix + '/add');
+    }
+
+    function editTeacher(id) {
+        $.operate.edit({id: id});
+    }
+
+</script>
+</body>
+<!-- 导入区域 -->
+<script id="importTpl" type="text/template">
+    <form enctype="multipart/form-data" class="mt20 mb10">
+        <div class="col-xs-offset-1">
+            <input type="file" id="file" name="file"/>
+            <div class="mt10 pt5">
+                <input type="checkbox" id="updateSupport" name="updateSupport" title="如果登录账户已经存在，更新这条数据。"> 是否更新已经存在的用户数据
+                &nbsp;	<a onclick="$.table.importTemplate()" class="btn btn-default btn-xs"><i class="fa fa-file-excel-o"></i> 下载模板</a>
+            </div>
+            <font color="red" class="pull-left mt10">
+                提示：仅允许导入“xls”或“xlsx”格式文件！
+            </font>
+        </div>
+    </form>
+</script>
+</html>

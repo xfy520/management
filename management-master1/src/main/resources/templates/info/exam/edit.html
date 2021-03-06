@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" >
+<head>
+    <th:block th:include="include :: header('修改考试')" />
+    <th:block th:include="include :: datetimepicker-css" />
+    <th:block th:include="include :: bootstrap-select-css" />
+    <th:block th:include="include :: select2-css" />
+</head>
+<body>
+<div class="main-content">
+    <form id="form-exam-edit" class="form-horizontal">
+        <h4 class="form-header h4">基本信息</h4>
+        <input name="examId" id="examId" type="hidden" th:value="${exam.examId}" />
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">考试类型：</label>
+                    <div class="col-sm-8">
+                        <select id="examType" name="examType" class="form-control m-b" required>
+                            <option th:if="${session.perms} == 1" value="1" th:selected="${exam.examType == '1' ? true : false}">期中考/半期考</option>
+                            <option th:if="${session.perms} == 1" value="2" th:selected="${exam.examType == '2' ? true : false}">月考</option>
+                            <option th:if="${session.perms} == 2" value="3" th:selected="${exam.examType == '3' ? true : false}">周考</option>
+                            <option th:if="${session.perms} == 2" value="4" th:selected="${exam.examType == '4' ? true : false}">测试</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">考试名称：</label>
+                    <div class="col-sm-8">
+                        <input name="examName" id="examName" th:value="${exam.examName}" placeholder="请输入考试名称" class="form-control" type="text" required>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">开始时间：</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="input-sm form-control" id="startDate" placeholder="yyyy-MM-dd HH:mm" name="startDate" required/>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">结束时间：</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="input-sm form-control" id="endDate" placeholder="yyyy-MM-dd HH:mm" name="endDate" required/>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label class="col-sm-2 control-label is-required" th:if="${session.perms} == 2">选择考试班级：</label>
+                    <label class="col-sm-2 control-label is-required" th:if="${session.perms} == 1">选择考试年级：</label>
+                    <div class="col-sm-10">
+                        <select th:if="${session.perms} == 2" id="examClass" class="form-control select2-multiple" multiple required>
+                            <option th:each="obj:${class}" th:value="${obj.classId}" th:text="${obj.className}" th:selected="${objStat.index}==0"></option>
+                        </select>
+                        <select th:if="${session.perms} == 1" id="examClass" class="grade form-control select2-multiple" required>
+                            <option th:each="obj:${grade}" th:value="${obj.gradeId}" th:text="${obj.gradeName}" th:selected="${objStat.index}==0"></option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label class="col-sm-2 control-label is-required">选择考试科目：</label>
+                    <div class="col-sm-10">
+                        <select id="examSubject" class="form-control select2-multiple" th:multiple="${session.perms} == 1" required>
+                            <option th:if="${session.perms} == 2" th:each="sub:${subject}" th:value="${sub.subjectId}" th:text="${sub.subjectName}"></option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<th:block th:include="include :: footer" />
+<th:block th:include="include :: datetimepicker-js" />
+<th:block th:include="include :: bootstrap-select-js" />
+<th:block th:include="include :: select2-js" />
+<script th:inline="javascript">
+
+    var subjectIds = [[${exam.subjectIds}]].split(",");
+
+    var classIds = [[${exam.classIds}]].split(",");
+
+    var gradeDic = {};
+    if([[${session.perms}]] == 1){
+        [[${grade}]].map(item => {
+            gradeDic[item.gradeId] = item.subjectIds;
+        });
+    }
+
+    var prefix = ctx + "info/exam";
+
+    function submitHandler() {
+        if ($.validate.form()) {
+            $('#examClass').prop('disabled', false);
+            var data = $("#form-exam-edit").serializeArray();
+            var classIds = $.form.selectSelects("examClass");
+            var subjectIds = $.form.selectSelects("examSubject");
+            data.push({"name": "classIds", "value": classIds});
+            data.push({"name": "subjectIds", "value": subjectIds});
+            $.operate.save(prefix + "/update", data);
+        }
+    }
+
+    function initSubject(){
+        var subjectIds = gradeDic[$("#examClass option:selected").val()].split(",");
+
+        var subjectIdss = [[${subject}]].filter(item => {
+            if(subjectIds.find(function (obj) {
+                return obj == item.subjectId;
+            }) != undefined){
+                return item;
+            }
+        }).map(function(obj,index,arr){
+            return {id: obj.subjectId, text: obj.subjectName, title: obj.subjectName, selected: index == 0 ? true : false}
+        }, this);
+        $('#examSubject').val("");
+        $('#examSubject').attr("title", "");
+        $('#examSubject').empty();
+        $('#examSubject').select2({
+            data: subjectIdss
+        });
+    }
+
+    $(function(){
+        $("#examName").val($("#examType option:selected").text() + "考试");
+
+        $('#examClass').val(classIds).trigger("change");
+
+        $("#examType").selectpicker({
+            "virtualScroll": 10,
+            "liveSearch": false,
+            "size": 10
+        });
+
+        if([[${session.perms}]] == 1){
+            initSubject();
+            $('#examSubject').val(subjectIds).trigger("change");
+        }
+
+        $('#examType').on('changed.bs.select', function () {
+            $("#examName").val($("#examType option:selected").text() + "考试");
+        });
+
+        $('.grade').on('select2:select', function (e) {
+            initSubject();
+        });
+
+        layui.use("laydate", function() {
+            var laydate = layui.laydate;
+            var startDate = laydate.render({
+                elem: "#startDate",
+                format: "yyyy-MM-dd HH:mm",
+                type: "datetime",
+                max: 150,
+                min: 0,
+                value: new Date([[${exam.startDate}]]),
+                theme: "molv",
+                trigger: "click",
+                done: function (value, date) {
+                    var now = new Date(new Date(format('{0}-{1}-{2}T{3}:{4}:{5}', [date.year, date.month, date.date, date.hours,
+                        date.minutes, date.seconds])).getTime() + 1000*60*30);
+                    $('#endDate').val(formatDateTime(now));
+                    // 结束时间大于开始时间
+                    if (value !== '') {
+                        endDate.config.min.year = now.getFullYear();
+                        endDate.config.min.month = now.getMonth();
+                        endDate.config.min.date = now.getDate();
+                        endDate.config.min.hours = now.getHours();
+                        endDate.config.min.minutes = now.getMinutes();
+                    } else {
+                        endDate.config.min.year = '';
+                        endDate.config.min.month = '';
+                        endDate.config.min.date = '';
+                        endDate.config.min.hours = '';
+                        endDate.config.min.minutes = '';
+                    }
+                }
+            });
+
+            var endDate = laydate.render({
+                elem: "#endDate",
+                format: "yyyy-MM-dd HH:mm",
+                type: "datetime",
+                min: $("#startDate").val(),
+                theme: "molv",
+                value: new Date([[${exam.endDate}]]),
+                trigger: "click",
+                btns: ["clear", "confirm"],
+                done: function (value, date) {
+                    // 开始时间小于结束时间
+                    if (value !== '') {
+                        startDate.config.max.year = date.year;
+                        startDate.config.max.month = date.month - 1;
+                        startDate.config.max.date = date.date;
+                        startDate.config.min.hours = date.hours;
+                        startDate.config.min.minutes = date.minutes;
+                    } else {
+                        startDate.config.max.year = '';
+                        startDate.config.max.month = '';
+                        startDate.config.max.date = '';
+                        startDate.config.max.hours = '';
+                        startDate.config.max.minutes = '';
+                    }
+                }
+            });
+        });
+
+        function format (result, data) {
+            for (var key in data) {
+                var value = data[key];
+                if (undefined != value) {
+                    result = result.replace("{" + key + "}", value < 10 ? `0${value}`: value);
+                }
+            }
+            return result;
+        }
+
+        function formatDateTime (date) {
+            return format('{0}-{1}-{2} {3}:{4}', [date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours(),
+                date.getMinutes()]);
+        }
+    })
+</script>
+</body>
+</html>

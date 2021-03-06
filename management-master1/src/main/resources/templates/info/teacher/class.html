@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('分配班级')"/>
+    <th:block th:include="include :: bootstrap-select-css"/>
+    <th:block th:include="include :: select2-css"/>
+</head>
+<body>
+<div class="main-content">
+    <form id="form-class-teacher" class="form-horizontal">
+        <h4 class="form-header h4">基本信息</h4>
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">选择年级：</label>
+                    <div class="col-sm-8">
+                        <select id="gradeId" class="form-control m-b">
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">选择班级：</label>
+                    <div class="col-sm-8">
+                        <select id="editClassIds" class="form-control m-b">
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label class="col-xs-2 control-label is-required">当前选中班级：</label>
+                    <div class="col-xs-10" style="width: 69%">
+                        <span class="select2 select2-container select2-container--bootstrap" style="width: 100%;">
+                            <span class="selection">
+                                <span class="select2-selection select2-selection--multiple">
+                                    <ul class="select2-selection__rendered" id="selectClass">
+<!--                                        <li class="select2-selection__choice" title="一年级(1)班">-->
+<!--                                            <span class="select2-selection__choice__remove">×</span>一年级(1)班-->
+<!--                                        </li>-->
+                                    </ul>
+                                </span>
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<th:block th:include="include :: footer"/>
+<th:block th:include="include :: bootstrap-select-js"/>
+<th:block th:include="include :: select2-js"/>
+<script th:inline="javascript">
+
+    var prefix = ctx + "info/teacher";
+    var classIdsDic = {};
+
+    function submitHandler() {
+        var classIds = Object.keys(classIdsDic).join(",");
+        if(classIds == null || classIds == undefined || classIds == ""){
+            $.modal.msgError("选中班级不能为空");
+            return;
+        }
+        if ($.validate.form()) {
+            var data = $("#form-class-teacher").serializeArray();
+            data.push({"name": "classIds", "value": classIds});
+            data.push({"name": "teacherId", "value": parent.$("#userId").val()});
+            $.operate.save(prefix + "/class", data);
+        }
+    }
+
+    function removeClassId(e){
+        $("#" + $(e).attr("data-id")).remove();
+        delete classIdsDic[$(e).attr("data-id")]
+    }
+
+    $(function () {
+        $.post(ctx + "info/grade/list", {subjectId: parent.$("#subjectIds").val()}, function (data) {
+            var _this = $("#gradeId");
+            _this.empty();
+            for (var i = 0; i < data.rows.length; i++) {
+                _this.append("<option value='" + data.rows[i].gradeId + "'>" + data.rows[i].gradeName + "</option>");
+            }
+            _this.selectpicker("refresh");
+            searchClass();
+        });
+
+        $.post(ctx + "info/teacher/class/search", {teacherId: parent.$("#userId").val()}, function (data) {
+            for (var i = 0; i < data.rows.length; i++) {
+                classIdsInit(data.rows[i].classId, data.rows[i].className);
+            }
+        });
+
+        function searchClass() {
+            $.post(ctx + "info/class/search", {
+                gradeId: $("#gradeId option:selected").val(),
+                teacherId: parent.$("#userId").val(), subjectId: parent.$("#subjectIds").val()
+            }, function (data) {
+
+                var _this = $("#editClassIds");
+                _this.empty();
+                _this.append("<option value=''>请选择班级...</option>");
+                for (var i = 0; i < data.rows.length; i++) {
+                    _this.append("<option value='" + data.rows[i].classId + "'>" + data.rows[i].className + "</option>");
+                }
+                _this.selectpicker("refresh");
+                if (classIdsDic == {}){
+                    classIdsInit($("#editClassIds option:selected").val(), $("#editClassIds option:selected").text());
+                }
+            });
+        }
+
+        $('#gradeId').on('changed.bs.select', function () {
+            searchClass();
+        });
+
+        $('#editClassIds').on('changed.bs.select', function () {
+            if($("#editClassIds option:selected").val() == ''){
+                return;
+            }
+            classIdsInit($("#editClassIds option:selected").val(), $("#editClassIds option:selected").text());
+        });
+        
+        function classIdsInit(id, text) {
+            if ($("#" + id).length > 0){
+                $("#" + id).remove();
+                delete classIdsDic[id];
+            }else{
+                classIdsDic[id] = true;
+                var htm = "<li id='" + id + "' class='select2-selection__choice' title='" + text + "'>\n" +
+                    " <span data-id='" + id +"' onclick='removeClassId(this)' class='select2-selection__choice__remove'>×</span>" + text + "\n" +
+                    " </li>";
+                $("#selectClass").append(htm);
+            }
+        }
+    });
+</script>
+</body>
+</html>

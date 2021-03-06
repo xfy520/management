@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.info.ExamineMapper">
+
+    <resultMap type="Examine" id="ExamineResult">
+        <id     property="examineId"        column="examine_id"      />
+        <result property="studentId"        column="student_id"      />
+        <result property="subjectId"        column="subject_id"      />
+        <result property="examNumber"       column="exam_number"   />
+        <result property="examId"           column="exam_id"   />
+        <result property="score"            column="score"    />
+    </resultMap>
+
+    <insert id="insertExamines" parameterType="Examine" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO examine ( id, student_id, exam_id, subject_id ) SELECT uuid( ) id, s.student_id,
+        #{examId} exam_id, #{subjectId} subject_id FROM student s, user u WHERE u.id = s.student_id and u.del_flag = '0' AND FIND_IN_SET (
+        s.class_id, ( SELECT CASE e.exam_type WHEN '1' THEN ( SELECT GROUP_CONCAT( DISTINCT ( c.id ) ) FROM class c
+        WHERE c.grade_id = e.class_ids ) when '2' then ( SELECT GROUP_CONCAT( DISTINCT ( c.id ) ) FROM class c
+        WHERE c.grade_id = e.class_ids ) ELSE e.class_ids END class_ids FROM exam e WHERE e.id = #{examId} AND
+        e.exam_number = #{examNumber}) ) > 0
+    </insert>
+    
+    <insert id="insertExamineById" parameterType="Examine">
+        insert into examine
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="examineId != null and examineId != ''">id,</if>
+            <if test="examId != null and examId != ''">exam_id,</if>
+            <if test="subjectId != null and subjectId != ''">subject_id,</if>
+            <if test="studentId != null and studentId != ''">student_id,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="examineId != null and examineId != ''">#{examineId},</if>
+            <if test="examId != null and examId != ''">#{examId},</if>
+            <if test="subjectId != null and subjectId != ''">#{subjectId},</if>
+            <if test="studentId != null and studentId != ''">#{studentId},</if>
+        </trim>
+    </insert>
+
+
+</mapper>

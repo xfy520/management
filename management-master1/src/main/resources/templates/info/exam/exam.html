@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('教师列表')" />
+    <th:block th:include="include :: layout-latest-css" />
+    <th:block th:include="include :: bootstrap-select-css" />
+    <style>
+        .active{
+            border:2px solid #E9F47B;
+        }
+        ::-webkit-scrollbar-thumb {
+            border-radius: 0px;
+            background-color: #fff;
+        }
+    </style>
+</head>
+<body class="gray-bg">
+
+<div class="ui-layout-center">
+    <div class="container-div">
+        <div class="row">
+
+            <div class="btn-group-sm" id="toolbar" role="group">
+                <a class="btn btn-success" onclick="addExam()">
+                    <i class="fa fa-plus"></i> 新增
+                </a>
+                <a class="btn btn-primary single disabled" onclick="editExam()">
+                    <i class="fa fa-edit"></i> 修改
+                </a>
+                <a class="btn btn-danger multiple disabled" onclick="removeExam()">
+                    <i class="fa fa-remove"></i> 删除
+                </a>
+            </div>
+
+            <div class="col-sm-12 select-table table-striped">
+                <table id="bootstrap-table"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:include="include :: footer" />
+<th:block th:include="include :: layout-latest-js" />
+<th:block th:include="include :: bootstrap-select-js" />
+<script th:inline="javascript">
+    var editFlag = "";
+    var removeFlag = "";
+
+    var prefix = ctx + "info/exam";
+
+    $(function() {
+        var panehHidden = false;
+        if ($(this).width() < 769) {
+            panehHidden = true;
+        }
+        $('body').layout({ initClosed: panehHidden, west__size: 185 });
+        queryExamList();
+    });
+
+    function queryExamList() {
+        var options = {
+            url: prefix + "/list",
+            updateUrl: prefix + "/edit/{id}",
+            removeUrl: prefix + "/remove",
+            sortName: "startDate",
+            sortOrder: "asc",
+            modalName: "考试",
+            uniqueId: "examId",
+            columns: [{
+                checkbox: true
+            },
+                {
+                    field: 'examId',
+                    title: '考试id',
+                    visible: false
+                },
+                {
+                    field: 'examNumber',
+                    title: '考试编号',
+                    sortable: true,
+                    align: 'center'
+                },
+                {
+                    field: 'examName',
+                    title: '考试名称',
+                    sortable: true,
+                    align: 'center'
+                },
+                {
+                    field: 'examType',
+                    title: '考试类型',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        return value == 1 ? '期中考/半期考' : value == 2 ? '月考' : value == 3 ? '周考' : '自主测试';
+                    }
+                },
+                {
+                    field: 'subjectName',
+                    title: '考试科目',
+                    align: 'center'
+                },
+                {
+                    field: 'className',
+                    title: '参考班级',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        return $.table.tooltip(value);
+                    }
+                },
+                {
+                    field: 'examNum',
+                    title: '考生数',
+                    align: 'center'
+                },
+                {
+                    field: 'isExam',
+                    title: '考试状态',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        return value == '1' ? '<a class="btn btn-success btn-xs ' + editFlag + '" href="javascript:void(0)" onclick="showExamine(\'' + row.examId + '\');"><i class="fa fa-check"></i>查看考生</a> ' :
+                            '<a class="btn btn-success btn-xs ' + editFlag + '" href="javascript:void(0)" onclick="addExamine(\'' + row.examId + '\', \'' + row.examNumber +'\', \'' +row.subjectIds +'\');"><i class="fa fa-edit"></i>生成考生</a> '
+                    }
+                },
+                {
+                    field: 'examDate',
+                    title: '考试日期',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        return row.startDate + ' 至 ' + row.endDate;
+                    }
+                },
+                {
+                    title: '操作',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        var actions = [];
+                        actions.push('<a class="btn btn-success btn-xs ' + editFlag + '" href="javascript:void(0)" onclick="editExam(\'' + row.examId + '\');"><i class="fa fa-edit"></i>编辑</a> ');
+                        actions.push('<a class="btn btn-danger btn-xs ' + removeFlag + '" href="javascript:void(0)" onclick="removeExam(\'' + row.examId + '\')"><i class="fa fa-remove"></i>删除</a> ');
+                        return actions.join('');
+                    }
+                }]
+        };
+        $.table.init(options);
+    }
+
+    /** 查看考生信息 */
+    function showExamine(examId) {
+        $.modal.open("查看考生", ctx + "info/examine/show/" + examId, 1024);
+    }
+
+    /** 生成考生*/
+    function addExamine(examId, examNumber, subjectIds) {
+        $.modal.confirm("确定生成考生吗?", function() {
+            $.operate.submit(ctx + "info/examine/add", "post", "json", {examId: examId, examNumber: examNumber, subjectIds: subjectIds});
+        });
+    }
+
+    /* 添加考试 */
+    function addExam() {
+        $.modal.open("发起考试", prefix + '/add', 810, 600);
+    }
+
+    function editExam(id) {
+        var rowData = id == undefined ? $("#bootstrap-table").bootstrapTable('getSelections')[0] :
+            $('#bootstrap-table').bootstrapTable('getRowByUniqueId', id);
+        if(compareTime(new Date(rowData.startDate.replace(" ", "T") + ":00"),
+            new Date(rowData.endDate.replace(" ", "T") + ":00"), "修改")){
+            $.operate.edit({id: id});
+        }
+    }
+    
+    function removeExam(id) {
+        var rowData = id == undefined ? $("#bootstrap-table").bootstrapTable('getSelections') :
+            [$('#bootstrap-table').bootstrapTable('getRowByUniqueId', id)];
+        var trObj = [];
+        for (var obj of rowData) {
+            if(!compareTime(new Date(obj.startDate.replace(" ", "T") + ":00"),
+                new Date(obj.endDate.replace(" ", "T") + ":00"), false)){
+                var _obj = document.querySelector("tr[data-uniqueid='"+ obj.examId +"']");
+                _obj.classList.add("active");
+                trObj.push({obj: _obj, flag: 0})
+            }
+        }
+
+        if (trObj.length > 0){
+            var Interval = setInterval(function () {
+                for (data of trObj){
+                    if (data.flag == 0) { data.obj.style.borderColor = "#E9F47B"; data.flag = 1; } else { data.obj.style.borderColor = "red"; data.flag = 0 }
+                }
+            }, 100);
+            setTimeout(function () {
+                clearInterval(Interval);
+                for (data of trObj){
+                    data.obj.classList.remove("active");
+                }
+                $.table.refresh();
+            }, 2000);
+            $.modal.msgError("注意查看考试时间,不允许删除操作！！！");
+            return;
+        }else if(rowData.length == 0){
+            $.modal.alertWarning("请至少选择一条记录");
+            return;
+        }else{
+            $.modal.confirm("确认要删除选中的" + rowData.length + "条数据吗?", function() {
+                var ids = rowData.map(obj => {
+                    return obj.examId;
+                });
+                var data = { "ids": ids.join() };
+                $.operate.submit(prefix + "/remove", "post", "json", data);
+            });
+        }
+    }
+
+    function compareTime(startDate, endDate, msg) {
+        var nowTime = new Date().getTime();
+        var startTime = startDate.getTime();
+        var endTime = endDate.getTime();
+        if(startTime - nowTime > 1800000){
+            return true;
+        }else if(startTime - nowTime > 0){
+            msg ? $.modal.msgError("离考试不到三十分钟，不允许" + msg +"！！！") : null;
+            return false;
+        }else if(nowTime >= startTime && nowTime <= endTime){
+            msg ? $.modal.msgError("正在考试中，不允许" + msg +"！！！") : null;
+            return false;
+        }else if(nowTime > endTime){
+            msg ? $.modal.msgError("考试已结束，不允许" + msg +"！！！") : null;
+            return false;
+        }else{
+            msg ? $.modal.msgError("考试异常，不允许" + msg +"！！！") : null;
+            return false;
+        }
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.info.ClassMapper">
+
+    <resultMap type="Class" id="ClassResult">
+        <id     property="gradeId"          column="grade_id"      />
+        <result property="classId"        column="class_id"   />
+        <result property="className"           column="class_name"    />
+        <result property="classNum"           column="class_num"    />
+        <result property="gradeName"       column="grade_name"    />
+        <result property="studentNum"         column="student_num"        />
+        <result property="leaderName"         column="leader_name"  />
+        <result property="leader"         column="leader"  />
+        <result property="createTime"   column="create_time"  />
+    </resultMap>
+
+
+    <insert id="insertClass" parameterType="Class" useGeneratedKeys="true" keyProperty="id">
+        insert into class(
+        <if test="classId != null and classId != 0">id,</if>
+        <if test="gradeId != null and gradeId != ''">grade_id,</if>
+        <if test="classNum != null and classNum != ''">class_num,</if>
+        <if test="leader != null and leader != ''">leader,</if>
+        <if test="createBy != null and createBy != ''">create_by,</if>
+        create_time
+        )values(
+        <if test="classId != null and classId != ''">#{classId},</if>
+        <if test="gradeId != null and gradeId != ''">#{gradeId},</if>
+        <if test="classNum != null and classNum != ''">#{classNum},</if>
+        <if test="leader != null and leader != ''">#{leader},</if>
+        <if test="createBy != null and createBy != ''">#{createBy},</if>
+        sysdate()
+        )
+    </insert>
+
+    <select id="selectClassList" resultMap="ClassResult" parameterType="Class">
+        select (select count(student_id) from student where class_id = c.id and del_flag = '0') student_num,
+	        c.create_time, c.id class_id, concat( g.grade_name, '(', c.class_num, ')班' ) class_name, c.class_num,
+	        c.leader, (select user_name from user where user_id = c.leader) leader_name, g.id grade_id, g.grade_name
+        from class c, grade g where c.grade_id = #{gradeId} and g.id = #{gradeId} group by c.id
+    </select>
+
+    <select id="searchClassList" resultMap="ClassResult">
+        SELECT c.id class_id, concat( g.grade_name, '(', c.class_num, ')班' ) class_name, c.class_num FROM class c, grade g
+        WHERE c.grade_id = #{gradeId} AND g.id = c.grade_id AND FIND_IN_SET( c.id, ( SELECT GROUP_CONCAT( DISTINCT ( t.class_ids )
+         ) class_ids FROM teacher t WHERE t.teacher_id != #{userId} AND t.subject_id = #{subjectId} ) ) = 0
+    </select>
+
+    <update id="updateClassLeader" parameterType="Class">
+        update class
+        <set>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            <if test="leader != null and leader != ''">leader = #{leader},</if>
+            update_time = sysdate()
+        </set>
+        where id = #{classId}
+    </update>
+
+    <select id="selectMaxClassNum" parameterType="Long" resultType="Integer">
+        select max(class_num) from class where grade_id = #{gradeId}
+    </select>
+
+    <delete id="deleteClass" parameterType="Long">
+        delete from class where id = #{classId}
+    </delete>
+
+    <select id="selectExamClassList" resultMap="ClassResult" parameterType="Teacher">
+        SELECT c.id class_id, concat( g.grade_name, '(', c.class_num, ')班' ) class_name, c.leader FROM class c, grade g
+        WHERE c.grade_id = g.id and #{perms}  &lt;= 2
+        <if test="perms != null and perms != '' and perms gte 2 and perms lte 2">
+            AND FIND_IN_SET ( c.id, ( SELECT GROUP_CONCAT( DISTINCT ( classs.class_ids ) ) FROM ( SELECT c.id class_ids
+            FROM grade g, class c WHERE g.leader = #{userId} AND c.grade_id = g.id UNION ALL SELECT t.class_ids
+            FROM teacher t WHERE t.teacher_id = #{userId} ) classs ) ) > 0
+        </if>
+        order by class_num asc
+    </select>
+
+</mapper>

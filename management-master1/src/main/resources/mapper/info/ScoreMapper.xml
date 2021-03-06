@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.info.ScoreMapper">
+
+	<resultMap type="Score" id="ScoreResult">
+		<id     property="Id"          column="id"      />
+		<result property="studentId"        column="student_id"   />
+		<result property="subjectId"           column="subject_id"    />
+		<result property="userId"           column="user_id"    />
+		<result property="userName"       column="user_name"    />
+		<result property="subjectNumber"       column="subject_number"    />
+		<result property="subjectName"         column="subject_name"        />
+		<result property="score"         column="score"  />
+	</resultMap>
+
+	<update id="importUpdateScore">
+		update examine ei, subject sb, student s, user u
+		<trim prefix="set" suffixOverrides=",">
+			<if test="score != null and score != ''">ei.score = #{score},</if>
+		</trim>
+		where ei.student_id = u.id and ei.subject_id = sb.id and sb.subject_number = #{subjectNumber}
+		 and u.user_id = #{userId} and ei.exam_id = #{examId} and s.class_id = #{classId} and s.student_id = u.id
+	</update>
+
+	<select id="selectStudentExamList" parameterType="String" resultType="Exam">
+		SELECT DISTINCT(ei.exam_id), e.exam_name from examine ei, exam e where e.id = ei.exam_id and ei.student_id = #{studentId}
+	</select>
+
+	<select id="studentScore" resultType="java.util.HashMap">
+		SELECT u.user_id, u.user_name, ${sqlStr} sum(ei.score) ssum, e.start_date, e.end_date,
+		( SELECT count( DISTINCT ( ssum ) ) FROM ( SELECT *, sum( ei1.score ) ssum FROM examine ei1 WHERE
+		ei1.exam_id = #{examId} GROUP BY ei1.student_id ) AS b WHERE sum( ei.score ) &lt; b.ssum ) + 1 AS rank  FROM examine ei, USER u, exam e
+		WHERE ei.exam_id = #{examId} AND u.id = #{studentId} AND e.id = ei.exam_id and ei.student_id = #{studentId}
+	</select>
+
+	<select id="listScore" resultType="java.util.HashMap">
+		SELECT u.user_id, u.user_name, ${sqlStr} sum(ei.score) ssum, e.start_date, e.end_date FROM examine ei, student s, USER u, exam e
+		WHERE ei.exam_id = #{examId} AND ei.student_id = s.student_id AND s.class_id = #{classId}
+		AND u.id = s.student_id	AND e.id = ei.exam_id GROUP BY ei.student_id
+	</select>
+
+	<update id="updateScore" parameterType="Score">
+		update examine ei
+		<trim prefix="set" suffixOverrides=",">
+			<if test="score != null and score != ''">ei.score = #{score},</if>
+		</trim>
+		where ei.id = #{Id} and ei.student_id = #{studentId} and ei.subject_id = #{subjectId}
+	</update>
+
+	<select id="selectScoreList" resultMap="ScoreResult">
+		select ei.id, s.student_id, u.user_id, u.user_name, t.subject_id, sb.subject_name, sb.subject_number, ei.score, e.start_date, e.end_date from exam e, examine ei, student s, user u, teacher t, subject sb where t.teacher_id = #{teacherId} and ei.subject_id
+		= t.subject_id and s.class_id = #{classId} and ei.student_id = s.student_id and e.id = ei.exam_id and ei.exam_id
+		= #{examId} and s.student_id = u.id and sb.id = t.subject_id
+	</select>
+
+    <select id="selectMarkExamList" parameterType="String" resultType="Exam">
+    SELECT e.id exam_id, e.exam_name, e.class_ids, e.exam_type, u.user_name FROM exam e, teacher t, user u WHERE u.id = t.teacher_id and
+	FIND_IN_SET ( (SELECT t.subject_id FROM teacher t WHERE t.teacher_id = #{teacherId}), e.subject_ids ) > 0
+	AND t.teacher_id = #{teacherId} AND FIND_IN_SETS ( t.class_ids,
+	(
+		CASE
+			e.exam_type
+			WHEN '1' THEN
+			( SELECT GROUP_CONCAT( DISTINCT ( c.id ) ) FROM class c WHERE c.grade_id = e.class_ids )
+			WHEN '2' THEN
+			( SELECT GROUP_CONCAT( DISTINCT ( c.id ) ) FROM class c WHERE c.grade_id = e.class_ids ) ELSE e.class_ids
+		END
+			)
+	) > 0
+    </select>
+
+	<select id="classTeacher" resultType="String" parameterType="String">
+		select c.id class_id, concat( g.grade_name, '(', c.class_num, ')班' ) class_name from class c, grade g where c.teacher_id = #{teacherId} and g.id = c.grade_id limit 1
+	</select>
+
+	<select id="scoreClass" resultType="Class">
+		SELECT c.id class_id, concat( g.grade_name, '(', c.class_num, ')班' ) class_name from class c, grade g where g.id = c.grade_id and FIND_IN_SET( c.id, ( SELECT FIND_IN_SETSS((SELECT (CASE
+			e.exam_type
+			WHEN '1' THEN
+			( SELECT GROUP_CONCAT( DISTINCT ( c.id ) ) FROM class c WHERE c.grade_id = e.class_ids )
+			WHEN '2' THEN
+			( SELECT GROUP_CONCAT( DISTINCT ( c.id ) ) FROM class c WHERE c.grade_id = e.class_ids ) ELSE e.class_ids
+		END) class_ids FROM exam e WHERE e.id = #{examId}), (SELECT t.class_ids from teacher t WHERE t.teacher_id = #{teacherId})))) > 0
+	</select>
+
+	<select id="selectMyClassExam" parameterType="String" resultType="Exam">
+		SELECT e.id exam_id, e.exam_name FROM exam e where FIND_IN_SETS ( #{classId},
+		(
+		CASE
+			e.exam_type
+			WHEN '1' THEN
+			( SELECT GROUP_CONCAT( DISTINCT ( c.id ) ) FROM class c WHERE c.grade_id = e.class_ids )
+			WHEN '2' THEN
+			( SELECT GROUP_CONCAT( DISTINCT ( c.id ) ) FROM class c WHERE c.grade_id = e.class_ids ) ELSE e.class_ids
+		END
+			)
+		) > 0
+	</select>
+
+	<select id="selectExamSubject" parameterType="String" resultType="Subject">
+		select s.id subject_id, s.subject_name from subject s where FIND_IN_SETS(s.id, (select
+		GROUP_CONCAT( DISTINCT ( e.subject_ids ) ) from exam e where e.id = #{examId} )) > 0
+	</select>
+</mapper>

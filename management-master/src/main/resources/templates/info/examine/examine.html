@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('教师列表')" />
+    <th:block th:include="include :: layout-latest-css" />
+    <th:block th:include="include :: bootstrap-select-css" />
+</head>
+<body class="gray-bg">
+
+<div class="ui-layout-center">
+    <div class="container-div">
+        <div class="row">
+            <div class="col-sm-12 search-collapse">
+                <form id="teacher-form">
+                    <div class="select-list">
+                        <ul>
+                            <li>
+                                <label>考试名称：</label>
+                                <select name="examIds" id="examIds">
+                                    <option th:each="exam:${exams}" th:value="${exam.examId}" th:text="${exam.examName}"></option>
+                                </select>
+                            </li>
+                            <li>
+                                <label>班级名称：</label>
+                                <select name="classIds" id="classIds">
+                                </select>
+                            </li>
+                            <li>
+                                <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                                <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                            </li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+
+            <div class="btn-group-sm" id="toolbar" role="group">
+                <a class="btn btn-success" onclick="addExamineById()">
+                    <i class="fa fa-plus"></i> 添加考生
+                </a>
+            </div>
+
+            <div class="col-sm-12 select-table table-striped">
+                <table id="bootstrap-table"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:include="include :: footer" />
+<th:block th:include="include :: layout-latest-js" />
+<th:block th:include="include :: bootstrap-select-js" />
+<script th:inline="javascript">
+
+    var prefix = ctx + "info/examine";
+
+    var examDic = {};
+    [[${exams}]].map( item => {
+        examDic[item.examId] = {classIds: item.classIds.split(",").filter(item=>{
+                if(item != ''){
+                    return item;
+                }
+            }), className: item.className == null ? "无班级数据" : item.className.split(",").filter(item=>{
+                if(item != ''){
+                    return item;
+                }
+            }), isExam: item.isExam, examNumber: item.examNumber, score: item.subjectIds  == null ? "" : item.subjectIds.split(",").map(item=>{
+                if(item != ''){
+                    return '-1';
+                }
+            }).join()};
+    });
+
+    $(function() {
+        var panehHidden = false;
+        if ($(this).width() < 769) {
+            panehHidden = true;
+        }
+        $('body').layout({ initClosed: panehHidden, west__size: 185 });
+        $('#examIds').selectpicker('render');
+        refreshOptions();
+        selectClassIds($("#examIds option:selected").val());
+        queryTeacherList();
+    });
+
+    $('#examIds').on('changed.bs.select', function () {
+        refreshOptions();
+        selectClassIds($("#examIds option:selected").val())
+        $.table.search();
+    });
+    
+    function selectClassIds(examId) {
+        var _this = $("#classIds");
+        _this.val("");
+        _this.attr("title","");
+        _this.empty();
+        var data = examDic[examId];
+        for(var i=0; i< data.classIds.length;i++){
+            _this.append("<option value='"+data.classIds[i]+"'>"+ data.className[i]+"</option>");
+        }
+        _this.selectpicker("refresh");
+    }
+
+    function queryTeacherList() {
+        var options = {
+            url: prefix + "/list",
+            updateUrl: prefix + "/edit/{id}",
+            removeUrl: prefix + "/remove",
+            exportUrl: prefix + "/export",
+            importUrl: prefix + "/importData",
+            importTemplateUrl: prefix + "/importTemplate",
+            modalName: "考生",
+            onRefreshOptions: function(options){
+                console.log(options)
+            },
+            formatNoMatches: function(){
+                return examDic[$("#examIds option:selected").val()].isExam != 0 ? '没有考生数据' : '<a class="btn btn-success btn-lg dim"' +
+                    ' href="javascript:void(0);" onclick="addExamine();" title="点击开始添加考生"><i class="glyphicon glyphicon-plus"></i>' +
+                    '还没有添加考生，点击开始添加考生</a>';
+            },
+            columns: [{
+                checkbox: true
+            },
+                {
+                    field: 'userId',
+                    title: '用户ID',
+                    visible: false
+                },
+                {
+                    field: 'loginName',
+                    title: '登录名',
+                    sortable: true,
+                    align: 'center'
+                },
+                {
+                    field: 'userName',
+                    title: '姓名',
+                    align: 'center'
+                },
+                {
+                    field: 'idNumber',
+                    title: '身份证号码',
+                    align: 'center'
+                },{
+                    field: 'subjectName',
+                    title: '所任科目',
+                    align: 'center'
+                },{
+                    field: 'job',
+                    title: '职务',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        return value == 0 ? '组长' : value == 1 ? '副组长' : '科任教师';
+                    }
+                },{
+                    field: 'className',
+                    title: '所上班级',
+                    align: 'center'
+                },
+                {
+                    field: 'addressName',
+                    title: '住址',
+                    align: 'center'
+                },
+                {
+                    field: 'createTime',
+                    title: '创建时间',
+                    sortable: true,
+                    align: 'center'
+                }]
+        };
+        $.table.init(options);
+    }
+
+    /* 添加考生 */
+    function addExamineById() {
+        $.modal.open("添加 " + $("#subjectId option:selected").text() + " 科目教师", prefix + '/add');
+    }
+    
+    function addExamine() {
+        $.operate.post(prefix + "/add", {examId: $("#examIds option:selected").val(),
+            examNumber: examDic[$("#examIds option:selected").val()].examNumber,
+            score: examDic[$("#examIds option:selected").val()].score}, function (data) {
+            console.log(data)
+        });
+    }
+
+    function refreshOptions(){
+        $('#bootstrap-table').bootstrapTable('refreshOptions', {
+            formatNoMatches: function(){
+                return examDic[$("#examIds option:selected").val()].isExam != 0 ? '没有考生数据' : '<a class="btn btn-success btn-lg dim"' +
+                    ' href="javascript:void(0)" onclick="addExamine();" title="点击开始添加考生"><i class="glyphicon glyphicon-plus"></i>' +
+                    '还没有添加考生，点击开始添加考生</a>';
+            }
+        });
+    }
+
+</script>
+</body>

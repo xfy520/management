@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" >
+<head>
+    <th:block th:include="include :: header('修改班主任')" />
+    <th:block th:include="include :: select2-css" />
+</head>
+<body>
+<div class="wrapper wrapper-content animated fadeInRight ibox-content">
+    <form class="form-horizontal m" id="form-leader">
+        <div class="form-group" style="text-align:center">
+            <div>
+                <select name="leader" class="form-control m-b" id="teacher">
+                </select>
+            </div>
+        </div>
+    </form>
+</div>
+<th:block th:include="include :: footer" />
+<th:block th:include="include :: select2-js" />
+<script th:inline="javascript">
+
+    var prefix = ctx + "info/teacher";
+
+    $(function() {
+        toSelect2();
+    });
+
+    function toSelect2() {
+        $("#teacher").select2({
+            ajax: {
+                url : prefix + '/search',
+                async: true,
+                delay: 500,
+                dataType : 'json',
+                type : 'post',
+                data : function (params) {
+                    return {
+                        perName : params.term
+                    };
+                },
+                processResults: function (data) {
+                    var options = new Array();
+                    if (data.total != 0) {
+                        $(data.rows).each(function(i, o) {
+                            options.push({
+                                id : o.userId,
+                                text : o.userName,
+                                title: o.subjectName + '   ' + (o.job == 0 ? '组长' : o.job == 1 ? '副组长' : '科任教师') +
+                                      '   ' + o.phoneNumber
+                            });
+                        });
+                        return {
+                            results: options
+                        };
+                    }else{
+                        return {
+                            results: options
+                        };
+                    }
+                },
+                cache: true
+            },
+            placeholder: "输入教师名字或者身份证号搜索...",
+            allowClear: true,
+            minimumInputLength: 1,
+            escapeMarkup: function (markup) { return markup; }, // 字符转义处理自定义格式化防止xss注入
+            formatSelection: function formatRepoSelection(repo){return repo.text;} // 函数用于呈现当前的选择
+        });
+    }
+
+    function submitHandler() {
+        var data = $("#form-leader").serializeArray();
+        data.push({"name": "classId", "value": parent.$("#classId").val()});
+        $.operate.save(ctx + "info/class/leader", data);
+    }
+</script>
+</body>
+</html>

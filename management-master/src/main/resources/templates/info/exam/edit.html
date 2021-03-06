@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" >
+<head>
+    <th:block th:include="include :: header('修改考试')" />
+    <th:block th:include="include :: datetimepicker-css" />
+    <th:block th:include="include :: bootstrap-select-css" />
+    <th:block th:include="include :: select2-css" />
+</head>
+<body>
+<div class="main-content">
+    <form id="form-exam-edit" class="form-horizontal">
+        <h4 class="form-header h4">基本信息</h4>
+        <input name="examId" id="examId" type="hidden" th:value="${exam.examId}" />
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">考试类型：</label>
+                    <div class="col-sm-8">
+                        <select id="examType" name="examType" class="form-control m-b" required>
+                            <option value="1" th:disabled="${session.grade != null ? false : true}"  th:selected="${exam.examType == '1' ? true : false}">期中考/半期考</option>
+                            <option value="2" th:selected="${exam.examType == '2' ? true : false}">月考</option>
+                            <option value="3" th:selected="${exam.examType == '3' ? true : false}">周考</option>
+                            <option value="4" th:selected="${exam.examType == '4' ? true : false}">测试</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">考试名称：</label>
+                    <div class="col-sm-8">
+                        <input name="examName" id="examName" th:value="${exam.examName}" placeholder="请输入考试名称" class="form-control" type="text" required>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">开始时间：</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="input-sm form-control" id="startDate" placeholder="yyyy-MM-dd HH:mm" name="startDate" required/>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label is-required">结束时间：</label>
+                    <div class="col-sm-8">
+                        <input type="text" class="input-sm form-control" id="endDate" placeholder="yyyy-MM-dd HH:mm" name="endDate" required/>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label class="col-sm-2 control-label is-required">选择考试班级：</label>
+                    <div class="col-sm-10">
+                        <select id="examClass" class="form-control select2-multiple" multiple required>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label class="col-sm-2 control-label is-required">选择考试科目：</label>
+                    <div class="col-sm-10">
+                        <select id="examSubject" class="form-control select2-multiple" multiple required>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<th:block th:include="include :: footer" />
+<th:block th:include="include :: datetimepicker-js" />
+<th:block th:include="include :: bootstrap-select-js" />
+<th:block th:include="include :: select2-js" />
+<th:block th:include="include :: exam-js" />
+<script th:inline="javascript">
+
+    var fromId = "form-exam-edit";
+
+    var subjectList = [[${subject}]].map(function(obj,index,arr){
+        return {id: obj.subjectId, text: obj.subjectName, title: obj.subjectName, selected: index == 0 ? true : false}
+    },this);
+    var classList = [[${class}]].map(function(obj,index,arr){
+        return {id: obj.classId, text: obj.className, title: obj.className, selected: index == 0 ? true : false}
+    },this);
+
+    var postUrl = "/update";
+
+    var grade = [[${session.grade}]];
+
+    var subjectIds = [[${exam.subjectIds}]].split(",");
+
+    var classIds = [[${exam.classIds}]].split(",");
+
+    var startDateValue = new Date([[${exam.startDate}]]);
+
+    var endDateValue = new Date([[${exam.endDate}]]);
+</script>
+</body>
+</html>

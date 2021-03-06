@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.info.ExamineMapper">
+
+    <resultMap type="Examine" id="ExamineResult">
+        <id     property="examineId"        column="examine_id"      />
+        <result property="studentId"        column="student_id"      />
+        <result property="examNumber"       column="exam_number"   />
+        <result property="examId"           column="exam_id"   />
+        <result property="score"            column="score"    />
+        <result property="updateBy"         column="update_by"    />
+        <result property="updateTime"       column="update_time"  />
+    </resultMap>
+
+    <insert id="insertExamines" parameterType="Examine" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO examine ( id, student_id, exam_number, score ) SELECT uuid_short( ) id, s.student_id,
+        #{examNumber} exam_number, #{score} score FROM student s WHERE s.del_flag = '0' AND FIND_IN_SET (
+        s.class_id, ( SELECT CASE e.exam_type WHEN '1' THEN ( SELECT GROUP_CONCAT( DISTINCT ( c.id ) ) FROM class c
+        WHERE c.grade_id = e.class_ids ) ELSE e.class_ids END student_id FROM exam e WHERE e.id = #{examId} AND
+        e.exam_number = #{examNumber}) ) > 0
+    </insert>
+
+    <select id="selectExamineList" resultMap="ExamineResult" parameterType="Examine">
+        select * from examine
+    </select>
+    
+    <insert id="insertExamineById" parameterType="Examine">
+
+    </insert>
+
+
+</mapper>

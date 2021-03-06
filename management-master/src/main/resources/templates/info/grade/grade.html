@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('年级列表')" />
+    <th:block th:include="include :: layout-latest-css" />
+</head>
+<body class="gray-bg">
+
+<div class="ui-layout-center">
+    <input type="hidden" id="gradeId">
+    <div class="col-sm-12 select-table table-striped">
+        <table id="bootstrap-table" data-show-columns="false"></table>
+    </div>
+</div>
+
+<th:block th:include="include :: footer" />
+<th:block th:include="include :: layout-latest-js" />
+<script th:inline="javascript">
+
+    var prefix = ctx + "info/grade";
+    $(function() {
+        queryTeacherList();
+    });
+
+    function queryTeacherList() {
+        var options = {
+            url: prefix + "/list",
+            showSearch: false,
+            showRefresh: false,
+            showColumns: false,
+            showToggle: false,
+            pagination: false,
+            modalName: "年级",
+            columns: [
+                {
+                    field: 'gradeId',
+                    title: '年级Id',
+                    visible: false
+                },
+                {
+                    field: 'gradeName',
+                    title: '年级名称',
+                    align: 'center'
+                },
+                {
+                    field: 'leaderName',
+                    title: '负责人',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        return '<a class="btn btn-info btn-xs" href="javascript:void(0)" onclick="' +
+                            'leader(\'' + row.gradeId + '\')">' + value + '</a> ';
+                    }
+                },
+                {
+                    field: 'classNum',
+                    title: '班级数',
+                    align: 'center'
+                },
+                {
+                    field: 'createTime',
+                    title: '创建时间',
+                    sortable: true,
+                    align: 'center'
+                }]
+        };
+        $.table.init(options);
+    }
+    
+    function leader(gradeId) {
+        $("#gradeId").val(gradeId);
+        $.modal.open("修改年级负责人", prefix + '/leader', '300', '490');
+    }
+
+</script>
+</body>

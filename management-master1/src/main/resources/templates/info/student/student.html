@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('学生列表')"/>
+    <th:block th:include="include :: layout-latest-css"/>
+    <th:block th:include="include :: bootstrap-select-css"/>
+</head>
+<body class="gray-bg">
+
+<div class="ui-layout-center">
+    <div class="container-div">
+        <div class="row">
+            <div class="col-sm-12 search-collapse">
+                <form id="user-form">
+                    <input type="hidden" id="gradeId" name="gradeId">
+                    <input type="hidden" id="classId" name="classId">
+                    <input type="hidden" id="gradeNum" name="gradeNum">
+                    <input type="hidden" id="classNum" name="classNum">
+                    <div class="select-list">
+                        <ul>
+                            <li>
+                                <label>年&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;级：</label>
+                                <select name="selectGradeId" id="selectGradeId">
+                                    <option th:each="obj:${grade}" th:attr="data-gradeNum=${obj.gradeNum}"
+                                            th:value="${obj.gradeId}" th:text="${obj.gradeName}"></option>
+                                </select>
+                            </li>
+                            <li>
+                                <label>班&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;级：</label>
+                                <select name="selectClassId" id="selectClassId">
+                                    <option value="">请选择班级...</option>
+                                </select>
+                            </li>
+                            <li>
+                                学号：<input type="text" id="userId" name="userId"/>
+                            </li>
+                            <li>
+                                学生姓名：<input type="text" id="userName" name="userName"/>
+                            </li>
+                            <li>
+                                <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i
+                                        class="fa fa-search"></i>&nbsp;搜索</a>
+                                <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i
+                                        class="fa fa-refresh"></i>&nbsp;重置</a>
+                            </li>
+
+                        </ul>
+                    </div>
+                </form>
+            </div>
+
+            <div class="btn-group-sm" id="toolbar" role="group">
+                <a class="btn btn-success" onclick="addStudent()">
+                    <i class="fa fa-plus"></i> 新增
+                </a>
+                <a class="btn btn-primary single disabled" onclick="editStudent()">
+                    <i class="fa fa-edit"></i> 修改
+                </a>
+                <a class="btn btn-danger multiple disabled" onclick="$.operate.removeAll()">
+                    <i class="fa fa-remove"></i> 删除
+                </a>
+            </div>
+
+            <div class="col-sm-12 select-table table-striped">
+                <table id="bootstrap-table"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:include="include :: footer"/>
+<th:block th:include="include :: layout-latest-js"/>
+<th:block th:include="include :: bootstrap-select-js"/>
+<script th:inline="javascript">
+    var prefix = ctx + "info/student";
+
+    $(function () {
+        var panehHidden = false;
+        if ($(this).width() < 769) {
+            panehHidden = true;
+        }
+        $('body').layout({initClosed: panehHidden, west__size: 185});
+        $("#selectGradeId").selectpicker();
+        $("#selectClassId").selectpicker();
+        selectClass();
+        $("#gradeId").val($("#selectGradeId option:selected").val());
+        $("#classId").val($("#selectClassId option:selected").val());
+        queryStudentList();
+    });
+
+    $('#selectGradeId').on('changed.bs.select', function () {
+        $("#gradeId").val($("#selectGradeId option:selected").val());
+        selectClass();
+        $("#classId").val($("#selectClassId option:selected").val());
+        $.table.search();
+    });
+
+    $('#selectClassId').on('changed.bs.select', function () {
+        $("#classId").val($("#selectClassId option:selected").val());
+        $.table.search();
+    });
+
+    function selectClass() {
+        var _this = $("#selectClassId");
+        _this.val("");
+        _this.attr("title", "");
+        _this.empty();
+        _this.append("<option value=''>请选择班级...</option>");
+        $.post(ctx + "info/class/list", {gradeId: $("#selectGradeId option:selected").val()}, function (data) {
+            for (var i = 0; i < data.rows.length; i++) {
+                _this.append("<option value='" + data.rows[i].classId + "' data-classNum='" + data.rows[i].classNum + "'>" +
+                    "" + data.rows[i].className + "</option>");
+            }
+            _this.selectpicker("refresh");
+        });
+    }
+
+    function queryStudentList() {
+        var options = {
+            url: prefix + "/list",
+            updateUrl: prefix + "/edit/{id}",
+            removeUrl: prefix + "/remove",
+            sortName: "userId",
+            sortOrder: "asc",
+            modalName: "学生",
+            columns: [{
+                checkbox: true
+            },
+                {
+                    field: 'id',
+                    title: '用户id',
+                    visible: false,
+                    width: '1%'
+                }, {
+                    field: 'userId',
+                    title: '学号',
+                    sortable: true,
+                    align: 'center',
+                    width: '10%'
+                },
+                {
+                    field: 'userName',
+                    title: '学生姓名',
+                    align: 'center',
+                    width: '10%'
+                }, {
+                    field: 'sex',
+                    title: '性别',
+                    align: 'center',
+                    width: '4.5%',
+                    formatter: function (value, row, index) {
+                        return value == 0 ? '男' : value == 1 ? '女' : '保密';
+                    }
+                },
+                {
+                    field: 'idNumber',
+                    title: '身份证号码',
+                    align: 'center',
+                    width: '15%'
+                },
+                {
+                    field: 'gradeName',
+                    title: '年级',
+                    align: 'center',
+                    width: '10%'
+                },
+                {
+                    field: 'className',
+                    title: '班级',
+                    align: 'center',
+                    width: '10%'
+                },
+                {
+                    field: 'addressName',
+                    title: '住址',
+                    align: 'center',
+                    width: '25%',
+                    formatter: function (value, row, index) {
+                        return $.table.tooltip(value.substring(3), 25);
+                    }
+                },
+                {
+                    title: '操作',
+                    align: 'center',
+                    width: '10%',
+                    formatter: function (value, row, index) {
+                        var actions = [];
+                        actions.push('<a class="btn btn-success btn-xs" href="javascript:void(0)" onclick="editStudent(\'' + row.id + '\');"><i class="fa fa-edit"></i>编辑</a> ');
+                        actions.push('<a class="btn btn-danger btn-xs" href="javascript:void(0)" onclick="$.operate.remove(\'' + row.id + '\')"><i class="fa fa-remove"></i>删除</a> ');
+                        return actions.join('');
+                    }
+                }]
+        };
+        $.table.init(options);
+    }
+
+    /* 添加学生 */
+    function addStudent() {
+        if ($.common.isEmpty($("#selectClassId").val())) {
+            $.modal.msgError("请选择班级");
+            return;
+        }
+        $("#gradeNum").val($("#selectGradeId option:selected").attr("data-gradeNum"));
+        $("#classNum").val($("#selectClassId option:selected").attr("data-classNum"));
+        $.modal.open("添加学生", prefix + '/add', 810, 640);
+    }
+
+    function editStudent(id) {
+        $.operate.edit({id: id, w: 810, h: 640});
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.info.UserMapper">
+
+	<update id="resetPwd">
+		update user set password = #{newPassword} where id = #{Id} and password=#{oldPassword}
+	</update>
+
+	<select id="checkPassword" resultType="String">
+		select count(0) from user u where u.id = #{Id} and u.password = #{password}
+	</select>
+
+	<select id="selectStudent" parameterType="String" resultType="Student">
+		select s.student_id id, u.user_id, u.avatar, u.user_name, s.id_number, s.email, s.phone_number, s.sex, a.ancestors_name address_name,
+		a.code address, a.ancestors address_parent_ids from  student s, address a, user u where s.student_id = #{Id} and a.code = s.address and u.id = s.student_id
+	</select>
+
+	<select id="selectUser" resultType="User" parameterType="User">
+		select u.id, u.user_id, u.user_name, u.avatar from user u where u.id = #{Id}
+	</select>
+
+	<delete id="deleteUserByIds" parameterType="String">
+		update user set del_flag = '1' where id in
+		<foreach collection="array" item="Id" open="(" separator="," close=")">
+			#{Id}
+		</foreach>
+	</delete>
+
+	<update id="updateUser" parameterType="User">
+		update user set password = #{password} where id = #{Id}
+	</update>
+
+	<insert id="insertUser" parameterType="User">
+		insert into user
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+		<if test="Id != null and Id != ''">id,</if>
+		<if test="userId != null and userId != ''">user_id,</if>
+		<if test="userName != null and userName != ''">user_name,</if>
+		<if test="password != null and password != ''">password,</if>
+		<if test="perms != null and perms != ''">perms,</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+		<if test="Id != null and Id != ''">#{Id},</if>
+		<if test="userId != null and userId != ''">#{userId},</if>
+		<if test="userName != null and userName != ''">#{userName},</if>
+		<if test="password != null and password != ''">#{password},</if>
+		<if test="perms != null and perms != ''">#{perms},</if>
+		</trim>
+	</insert>
+
+</mapper>

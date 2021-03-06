@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('教师列表')" />
+    <th:block th:include="include :: layout-latest-css" />
+    <th:block th:include="include :: bootstrap-select-css" />
+</head>
+<body class="gray-bg">
+
+<div class="ui-layout-center">
+    <div class="container-div">
+        <div class="row">
+            <div class="col-sm-12 search-collapse">
+                <form id="user-form">
+                    <input type="hidden" id="examId" name="examId" th:value="${examId}">
+                    <div class="select-list">
+                        <ul>
+                            <li>
+                                <label>班&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;级：</label>
+                                <select name="classId" id="classId" data-width="125">
+                                    <option th:each="obj:${class}" th:value="${obj.classId}" th:text="${obj.className}"></option>
+                                </select>
+                            </li>
+                            <li>
+                                <label>科&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;目：</label>
+                                <select name="subjectId" id="subjectId" data-width="100">
+                                    <option th:each="obj:${subject}" th:value="${obj.subjectId}" th:text="${obj.subjectName}"></option>
+                                </select>
+                            </li>
+                            <li>
+                                学号：<input type="text" id="userId" name="userId"/>
+                            </li>
+                            <li>
+                                <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i
+                                        class="fa fa-search"></i>&nbsp;搜索</a>
+                                <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i
+                                        class="fa fa-refresh"></i>&nbsp;重置</a>
+                                <a class="btn btn-success btn-rounded btn-sm" onclick="addExamine()">
+                                    <i class="fa fa-plus"></i> 新增
+                                </a>
+                            </li>
+
+                        </ul>
+                    </div>
+                </form>
+            </div>
+
+            <div class="col-sm-12 select-table table-striped">
+                <table id="bootstrap-table"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:include="include :: footer" />
+<th:block th:include="include :: layout-latest-js" />
+<th:block th:include="include :: bootstrap-select-js" />
+<script th:inline="javascript">
+
+    var prefix = ctx + "info/examine";
+
+    $(function () {
+
+        $("#classId").selectpicker();
+        $("#subjectId").selectpicker();
+
+        queryStudentList();
+
+        $('#classId').on('changed.bs.select', function () {
+            $.table.search()
+        });
+
+        $('#subjectId').on('changed.bs.select', function () {
+            $.table.search()
+        });
+    });
+    
+    function addExamine() {
+        $.modal.open("单独新增考生", prefix + '/add', '300', '490');
+    }
+
+    function queryStudentList() {
+        var options = {
+            url: prefix + "/list",
+            sortName: "userId",
+            sortOrder: "asc",
+            modalName: "学生",
+            showSearch: false,
+            showRefresh: false,
+            showColumns: false,
+            showToggle: false,
+            pagination: false,
+            columns: [
+                {
+                    field: 'id',
+                    title: '用户id',
+                    visible: false
+                }, {
+                    field: 'userId',
+                    title: '学号',
+                    sortable: true,
+                    align: 'center'
+                },
+                {
+                    field: 'userName',
+                    title: '学生姓名',
+                    align: 'center'
+                },
+                {
+                    field: 'gradeName',
+                    title: '年级',
+                    align: 'center'
+                },
+                {
+                    field: 'className',
+                    title: '班级',
+                    align: 'center'
+                }]
+        };
+        $.table.init(options);
+    }
+
+</script>
+</body>

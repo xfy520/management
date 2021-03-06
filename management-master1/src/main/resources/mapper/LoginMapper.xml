@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.LoginMapper">
+
+    <resultMap type="Login" id="LoginResult">
+        <id     property="Id"     column="id"     />
+        <result property="userName"   column="user_name"   />
+        <result property="perms"   column="perms"   />
+        <result property="avatar"   column="avatar"      />
+    </resultMap>
+
+    <select id="loginAuth" resultMap="LoginResult">
+        SELECT u.id, u.user_id, u.user_name, u.perms, u.avatar FROM user u where u.user_id = #{username} and u.password = #{password}
+    </select>
+</mapper>

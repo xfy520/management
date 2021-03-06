@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.DeptMapper">
+
+	<resultMap type="Dept" id="DeptResult">
+		<id     property="deptId"     column="dept_id"     />
+		<result     property="deptNum"     column="dept_num"     />
+		<result property="parentId"   column="parent_id"   />
+		<result property="deptName"   column="dept_name"   />
+		<result property="orderNum"   column="order_num"   />
+		<result property="leader"     column="leader"      />
+		<result property="createBy"   column="create_by"      />
+		<result property="createTime"   column="create_time"      />
+		<result property="updateBy"   column="update_by"      />
+		<result property="updateTime"   column="update_time"      />
+	</resultMap>
+	
+	<sql id="selectDeptVo">
+        select d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num, d.leader, d.phone, d.email, d.status, d.perms, d.del_flag, d.create_by, d.create_time
+        from dept d
+    </sql>
+
+	<select id="selectDeptList" parameterType="User" resultMap="DeptResult">
+		SELECT school.id dept_id, school.school_name dept_name,school.parent_id parent_id, school.create_time create_time,
+			school.create_by create_by,school.update_time update_time,school.update_by update_by,school.school_num order_num,school.leader leader,
+			school.school_num dept_num, 'schoolId' type FROM school
+		UNION ALL
+		SELECT grade.id dept_id, grade.grade_name dept_name,grade.school_id parent_id, grade.create_time create_time,
+			grade.create_by create_by,grade.update_time update_time,grade.update_by update_by,grade.grade_num order_num,grade.leader leader,
+			grade.grade_num dept_num, 'gradeId' type FROM grade
+		UNION ALL
+		SELECT class.id dept_id, concat( grade.grade_name, '(', class.class_num, ')班' ) dept_name,class.grade_id parent_id, class.create_time create_time,
+			class.create_by create_by,class.update_time update_time,class.update_by update_by,class.class_num order_num,class.leader leader,
+			class.class_num dept_num, 'classId' type  FROM grade, class WHERE grade.id = class.grade_id
+		order by parent_id, order_num
+    </select>
+
+</mapper> 

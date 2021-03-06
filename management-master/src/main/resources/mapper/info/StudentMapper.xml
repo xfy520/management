@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.info.StudentMapper">
+
+	<resultMap type="Student" id="StudentResult">
+		<id     property="userId"       column="user_id"      />
+		<result property="loginName"    column="login_name"   />
+		<result property="userName"     column="user_name"    />
+		<result property="idNumber"     column="id_number"    />
+		<result property="email"        column="email"        />
+		<result property="phoneNumber"  column="phone_number"  />
+		<result property="sex"          column="sex"          />
+		<result property="avatar"       column="avatar"       />
+		<result property="password"     column="password"     />
+		<result property="delFlag"      column="del_flag"     />
+		<result property="createBy"     column="create_by"    />
+		<result property="createTime"   column="create_time"  />
+		<result property="updateBy"     column="update_by"    />
+		<result property="updateTime"   column="update_time"  />
+		<result property="remark"       column="remark"       />
+		<result property="addressName"  column="ancestors_name"/>
+		<result property="addressParentIds"  column="ancestors"/>
+		<result property="address"  	column="address"/>
+		<result property="schoolId"     column="school_id"     />
+		<result property="schoolName"   column="school_name"     />
+		<result property="classId"      column="class_id"     />
+		<result property="classNum"    column="class_num"   />
+		<result property="gradeId"      column="grade_id"     />
+		<result property="gradeName"    column="grade_name"   />
+	</resultMap>
+
+	<delete id="deleteStudentByIds" parameterType="Long">
+		update student set del_flag = '2' where id in
+		<foreach collection="array" item="userId" open="(" separator="," close=")">
+			#{userId}
+		</foreach>
+	</delete>
+	
+	<select id="selectStudentList" parameterType="Student" resultMap="StudentResult">
+		select u.user_id, u.login_name, u.user_name,u.id_number, u.email, u.avatar, u.phone_number, u.password, u.sex,
+		u.del_flag, u.create_by, u.create_time, u.remark, s.school_id, s.grade_id, s.class_id, s.student_id,
+		sc.school_name, g.grade_name, c.class_num, a.ancestors_name, a.code address, a.ancestors
+		from user u,student s,school sc, grade g, class c, address a
+		where u.del_flag = '0' and u.perms = 3 and u.user_id = s.student_id and sc.id = s.school_id and
+		g.id = s.grade_id and c.id = s.class_id and a.code = u.address
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id = #{schoolId}
+		</if>
+		<if test="gradeId != null and gradeId != ''">
+			and s.grade_id = #{gradeId}
+		</if>
+		<if test="classId != null and classId != ''">
+			and s.class_id = #{classId}
+		</if>
+		<if test="loginName != null and loginName != ''">
+			and u.login_name like concat('%', #{loginName}, '%')
+		</if>
+		<if test="userName != null and userName != ''">
+			and u.user_name like concat('%', #{userName}, '%')
+		</if>
+		<if test="params.beginTime != null and params.beginTime != ''"><!-- 开始时间检索 -->
+			and date_format(u.create_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+		</if>
+		<if test="params.endTime != null and params.endTime != ''"><!-- 结束时间检索 -->
+			and date_format(u.create_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+		</if>
+	</select>
+
+	<select id="selectStudentById" parameterType="Student" resultMap="StudentResult">
+		select u.user_id, u.login_name, u.user_name,u.id_number, u.email, u.avatar, u.phone_number, u.password, u.sex,
+		u.del_flag, u.create_by, u.create_time, u.remark, s.school_id, s.grade_id, s.class_id, s.student_id,
+		sc.school_name, g.grade_name, c.class_num, a.ancestors_name, a.code address, a.ancestors
+		from user u,student s,school sc, grade g, class c, address a
+		where u.user_id = #{userId} and u.user_id = s.student_id and sc.id = s.school_id and
+		g.id = s.grade_id and c.id = s.class_id and a.code = u.address
+	</select>
+
+	<insert id="insertStudent" parameterType="Student">
+		insert into student ( student_id, school_id, grade_id, class_id ) values (#{userId}, #{schoolId}, #{gradeId}, #{classId})
+	</insert>
+
+	<insert id="insertSchoolRoll" parameterType="SchoolRoll" useGeneratedKeys="true" keyProperty="rollId">
+		insert into school_roll(
+		<if test="rollId != null and rollId != ''">id,</if>
+		<if test="rollNumber != null and rollNumber != ''">roll_number,</if>
+		<if test="createBy != null and createBy != ''">create_by,</if>
+		<if test="idNumber != null and idNumber != ''">id_number,</if>
+		create_time
+		)values(
+		<if test="rollId != null and rollId != ''">#{rollId},</if>
+		<if test="rollNumber != null and rollNumber != ''">#{rollNumber},</if>
+		<if test="createBy != null and createBy != ''">#{createBy},</if>
+		<if test="idNumber != null and idNumber != ''">#{idNumber},</if>
+		sysdate()
+		)
+	</insert>
+</mapper> 

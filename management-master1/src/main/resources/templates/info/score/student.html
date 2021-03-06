@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('教师列表')"/>
+    <th:block th:include="include :: layout-latest-css"/>
+    <th:block th:include="include :: bootstrap-select-css"/>
+    <th:block th:include="include :: bootstrap-editable-css"/>
+</head>
+<body class="gray-bg">
+
+<div class="ui-layout-center">
+    <form id="score-form">
+        <div class="container-div">
+            <div class="row">
+                <div class="btn-group-sm" id="toolbar" role="group">
+                    <input type="hidden" id="subjectIds" name="subjectIds"/>
+                    <input type="hidden" id="subjectIdChar" name="subjectIdChar"/>
+                    <input type="hidden" id="studentId" name="studentId" th:value="${session.uuid}"/>
+                    <label>考试名称：</label>
+                    <select name="examId" id="examId" class="select-list" data-width="160">
+                        <option th:each="e:${exam}" th:value="${e.examId}" th:text="${e.examName}"
+                                th:title="${e.examName}"></option>
+                    </select>
+                </div>
+
+                <div class="col-sm-12 select-table table-striped">
+                    <table id="bootstrap-table"></table>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<th:block th:include="include :: footer"/>
+<th:block th:include="include :: layout-latest-js"/>
+<th:block th:include="include :: bootstrap-select-js"/>
+<th:block th:include="include :: bootstrap-table-editable-js"/>
+<script th:inline="javascript">
+
+    var prefix = ctx + "info/score";
+
+    Date.prototype.format = function(fmt) {
+        var o = {
+            "M+" : this.getMonth()+1,                 //月份
+            "d+" : this.getDate(),                    //日
+            "h+" : this.getHours(),                   //小时
+            "m+" : this.getMinutes(),                 //分
+            "s+" : this.getSeconds(),                 //秒
+            "q+" : Math.floor((this.getMonth()+3)/3), //季度
+            "S"  : this.getMilliseconds()             //毫秒
+        };
+        if(/(y+)/.test(fmt)) {
+            fmt=fmt.replace(RegExp.$1, (this.getFullYear()+"").substr(4 - RegExp.$1.length));
+        }
+        for(var k in o) {
+            if(new RegExp("("+ k +")").test(fmt)){
+                fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));
+            }
+        }
+        return fmt;
+    }
+
+    $(function () {
+        $("#examId").selectpicker();
+        if ([[${exam}]].length == 0){
+            $("#examId").append("<option selected='true' disabled='true' value=''>暂无考试...</option>");
+            $("#examId").selectpicker("refresh");
+        }
+        var panehHidden = false;
+        if ($(this).width() < 769) {
+            panehHidden = true;
+        }
+        $('body').layout({initClosed: panehHidden, west__size: 185});
+        selectSubject(true);
+    });
+
+    function selectSubject(flag){
+        $.post(prefix + "/subject", {examId: $("#examId option:selected").val()}, function (data) {
+            if(flag){
+                queryExamList(getColumns(data));
+            }else{
+                refreshOptions(getColumns(data));
+                $.table.search();
+            }
+        });
+    }
+
+    function refreshOptions(columns){
+        $('#bootstrap-table').bootstrapTable('refreshOptions', {columns: columns});
+    }
+
+    function getColumns(data){
+        var columns = [];
+        var subjectIds = '';
+        var subjectIdChar = '';
+        columns.push({
+            field: 'id',
+            title: '学生id',
+            visible: false
+        });
+        columns.push({
+            field: 'user_id',
+            title: '学号',
+            align: 'center'
+        });
+        columns.push({
+            field: 'user_name',
+            title: '学生姓名',
+            align: 'center'
+        });
+        data.forEach((item,index,array)=>{
+            columns.push({
+                field: String.fromCharCode(65+ index),
+                title: item.subjectName,
+                align: 'center',
+                formatter: function(value, row, index) {
+                    return value == null || value == '' || value == undefined ? 0.0 : value;
+                }
+            });
+            if(index < array.length - 1){
+                subjectIds += item.subjectId + ',';
+                subjectIdChar += String.fromCharCode(65+ index) + ',';
+            }else{
+                subjectIds += item.subjectId;
+                subjectIdChar += String.fromCharCode(65+ index);
+            }
+        });
+        columns.push({
+            field: 'ssum',
+            title: '总分',
+            align: 'center'
+        });
+        columns.push({
+            field: 'rank',
+            title: '排名',
+            align: 'center'
+        });
+        columns.push({
+            field: 'examDate',
+            title: '考试日期',
+            align: 'center',
+            formatter: function(value, row, index) {
+                return new Date(row.start_date).format("yyyy-MM-dd hh:mm") + ' 至 ' + new Date(row.end_date).format("yyyy-MM-dd hh:mm");
+            }
+        });
+        $("#subjectIds").val(subjectIds);
+        $("#subjectIdChar").val(subjectIdChar);
+        return columns;
+    }
+
+    $('#examId').on('changed.bs.select', function () {
+        selectSubject(false);
+    });
+
+    function queryExamList(columns) {
+        var options = {
+            url: prefix + "/student/score",
+            showSearch: false,
+            showRefresh: false,
+            showColumns: false,
+            showToggle: false,
+            pagination: false,
+            sortName: "ssum",
+            sortOrder: "desc",
+            modalName: "成绩查看",
+            uniqueId: "userId",
+            columns: columns
+        };
+        $.table.init(options);
+    }
+
+</script>
+</body>
+</html>

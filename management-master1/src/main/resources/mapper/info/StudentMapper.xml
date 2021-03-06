@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.info.StudentMapper">
+
+	<resultMap type="Student" id="StudentResult">
+		<id     property="Id"       	column="id"      	/>
+		<result property="userId"       column="user_id"      />
+		<result property="userName"     column="user_name"    />
+		<result property="idNumber"     column="id_number"    />
+		<result property="email"        column="email"        />
+		<result property="phoneNumber"  column="phone_number"  />
+		<result property="sex"          column="sex"          />
+		<result property="avatar"       column="avatar"       />
+		<result property="addressName"  column="ancestors_name"/>
+		<result property="addressParentIds"  column="ancestors"/>
+		<result property="address"  	column="address"/>
+		<result property="schoolId"     column="school_id"     />
+		<result property="schoolName"   column="school_name"     />
+		<result property="classId"      column="class_id"     />
+		<result property="classNum"    column="class_num"   />
+		<result property="gradeId"      column="grade_id"     />
+		<result property="gradeName"    column="grade_name"   />
+	</resultMap>
+
+	<select id="searchStudentList" resultMap="StudentResult">
+		select u.user_name, u.id, u.user_id from student s, user u where s.class_id = #{classId} and FIND_IN_SET ( s.student_id, (select GROUP_CONCAT( DISTINCT ( e.student_id ) ) student_id
+		 from examine e where e.exam_id = #{examId} and e.subject_id = #{subjectId})) = 0 and u.id = s.student_id
+		<if test="userId != null and userId != ''">
+			and u.user_id like concat('%', #{userId}, '%')
+		</if>
+	</select>
+
+	<select id="selectExamineList" resultMap="StudentResult">
+		SELECT s.student_id id, u.user_id, u.user_name, g.grade_name, concat( g.grade_name, '(', c.class_num, ')班' ) class_name
+		FROM student s, examine e, class c, grade g, USER u WHERE e.exam_id = #{examId}  AND e.student_id = s.student_id
+		AND c.id = #{classId} AND s.class_id = c.id AND c.grade_id = g.id AND u.id = s.student_id AND e.subject_id = #{subjectId}
+		<if test="userId != null and userId != ''">
+			and u.user_id like concat('%', #{userId}, '%')
+		</if>
+	</select>
+
+	<select id="checkIdNumberUnique" parameterType="String" resultType="String">
+	    select count(1) from student where id_number=#{idNumber}
+	</select>
+
+	<update id="updateStudent" parameterType="Student">
+		update student s, user u
+		<trim prefix="set" suffixOverrides=",">
+			<if test="userName != null and userName != ''">u.user_name = #{userName},</if>
+			<if test="idNumber != null and idNumber != ''">s.id_number = #{idNumber},</if>
+			<if test="phoneNumber != null and phoneNumber != ''">s.phone_number = #{phoneNumber},</if>
+			<if test="email != null and email != ''">s.email = #{email},</if>
+			<if test="sex != null and sex != ''">s.sex = #{sex},</if>
+			<if test="address != null and address != ''">s.address = #{address},</if>
+		</trim>
+		where student_id = #{Id} and s.student_id = u.id
+	</update>
+	
+	<select id="selectStudentList" parameterType="Student" resultMap="StudentResult">
+		select u.id, u.user_id, u.user_name, u.avatar, s.id_number, s.email, s.phone_number, s.sex,
+		s.school_id, s.grade_id, s.class_id, s.student_id, sc.school_name, g.grade_name, c.class_num, a.ancestors_name,
+		a.code address, a.ancestors, concat( g.grade_name, '(', c.class_num, ')班' ) class_name
+		from user u,student s,school sc, grade g, class c, address a
+		where u.del_flag = '0' and u.perms = 3 and u.id = s.student_id and sc.id = s.school_id and
+		g.id = s.grade_id and c.id = s.class_id and a.code = s.address
+		<if test="gradeId != null and gradeId != ''">
+			and s.grade_id = #{gradeId}
+		</if>
+		<if test="classId != null and classId != ''">
+			and s.class_id = #{classId}
+		</if>
+		<if test="userId != null and userId != ''">
+			and u.user_id like concat('%', #{userId}, '%')
+		</if>
+		<if test="userName != null and userName != ''">
+			and u.user_name like concat('%', #{userName}, '%')
+		</if>
+	</select>
+
+	<select id="selectStudentById" parameterType="Student" resultMap="StudentResult">
+		select s.student_id id, u.user_name, s.id_number, s.email, s.phone_number, s.sex, a.ancestors_name,
+		a.code address, a.ancestors from student s, address a, user u
+		where s.student_id = #{Id} and a.code = s.address and u.id = s.student_id
+	</select>
+
+	<insert id="insertStudent" parameterType="Student">
+		insert into student
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="Id != null and Id != ''">student_id,</if>
+			<if test="schoolId != null and schoolId != ''">school_id,</if>
+			<if test="gradeId != null and gradeId != ''">grade_id,</if>
+			<if test="classId != null and classId != ''">class_id,</if>
+			<if test="idNumber != null and idNumber != ''">id_number,</if>
+			<if test="phoneNumber != null and phoneNumber != ''">phone_number,</if>
+			<if test="sex != null and sex != ''">sex,</if>
+			<if test="email != null and email != ''">email,</if>
+			<if test="address != null and address != ''">address,</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="Id != null and Id != ''">#{Id},</if>
+			<if test="schoolId != null and schoolId != ''">#{schoolId},</if>
+			<if test="gradeId != null and gradeId != ''">#{gradeId},</if>
+			<if test="classId != null and classId != ''">#{classId},</if>
+			<if test="idNumber != null and idNumber != ''">#{idNumber},</if>
+			<if test="phoneNumber != null and phoneNumber != ''">#{phoneNumber},</if>
+			<if test="sex != null and sex != ''">#{sex},</if>
+			<if test="email != null and email != ''">#{email},</if>
+			<if test="address != null and address != ''">#{address},</if>
+		</trim>
+	</insert>
+
+	<select id="maxStudentId" parameterType="Student" resultType="Long">
+		SELECT MAX(user_id) maxStudentId from user u, student s where s.grade_id = #{gradeId} and
+		s.class_id = #{classId} and s.student_id = u.id
+	</select>
+</mapper> 

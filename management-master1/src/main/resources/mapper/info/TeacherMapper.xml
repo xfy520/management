@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.info.TeacherMapper">
+
+    <resultMap type="Teacher" id="TeacherResult">
+        <id     property="Id"       column="id"      />
+        <result property="userId"       column="user_id"   />
+        <result property="userName"     column="user_name"    />
+        <result property="avatar"       column="avatar"       />
+        <result property="className"  	column="class_name"/>
+        <result property="classIds"  	column="class_ids"/>
+        <result property="subjectId"  	column="subject_id"/>
+        <result property="subjectName"  column="subject_name"/>
+        <result property="job"  	column="job"/>
+    </resultMap>
+
+    <select id="classSearch" parameterType="Teacher" resultType="Class">
+        SELECT c.id class_id, concat( g.grade_name, '(', c.class_num, ')班' ) class_name, c.class_num
+        FROM class c, grade g WHERE c.grade_id = g.id AND FIND_IN_SET( c.id, ( SELECT t.class_ids FROM teacher t WHERE
+        t.teacher_id = #{teacherId} ) ) > 0
+    </select>
+
+    <select id="selectTeacherList" parameterType="Teacher" resultMap="TeacherResult">
+        SELECT u.id, u.user_id, u.avatar, s.subject_name, s.id subject_id, u.user_name, ( SELECT c.id FROM class c WHERE c.teacher_id = u.id ) job,
+        ( SELECT GROUP_CONCAT( DISTINCT ( concat( g.grade_name, '(', c.class_num, ')班' ) ) ) FROM class c, grade g
+        WHERE g.id = c.grade_id AND FIND_IN_SET( c.id, t.class_ids ) > 0 ) class_name, t.class_ids
+        FROM USER u, teacher t, SUBJECT s WHERE u.del_flag = '0' AND u.perms = 2 AND u.id = t.teacher_id AND t.subject_id = s.id
+        <if test="subjectId != null and subjectId != ''">
+            and t.subject_id = #{subjectId}
+        </if>
+        <if test="userId != null and userId != ''">
+            and u.user_id like concat('%', #{userId}, '%')
+        </if>
+        <if test="userName != null and userName != ''">
+            and u.user_name like concat('%', #{userName}, '%')
+        </if>
+    </select>
+
+    <select id="searchTeacherList" parameterType="Teacher" resultMap="TeacherResult">
+        select u.id, u.user_name, s.subject_name from subject s, user u, teacher t
+         where t.teacher_id = u.id and s.id = t.subject_id and FIND_IN_SETS(u.id,
+         (select GROUP_CONCAT( DISTINCT ( c.teacher_id ) ) teacher_ids from class c)) = 0
+        <if test="userId != null and userId != ''">
+            and u.user_id like concat('%', #{userId}, '%')
+        </if>
+        <if test="userName != null and userName != ''">
+            and u.user_name like concat('%', #{userName}, '%')
+        </if>
+    </select>
+
+    <select id="selectTeacherById" parameterType="Teacher" resultMap="TeacherResult">
+		select u.id, u.user_id, u.user_name from user u,teacher t where u.id = #{Id} and u.id = t.teacher_id
+	</select>
+
+    <update id="updateTeacher" parameterType="Teacher">
+        update user u
+        <trim prefix="set" suffixOverrides=",">
+            <if test="userName != null and userName != ''">u.user_name = #{userName},</if>
+            <if test="userId != null and userId != ''">u.user_id = #{userId},</if>
+        </trim>
+        where u.id = #{Id}
+    </update>
+
+    <update id="updateTeacherClass" parameterType="Teacher">
+        update teacher
+        <trim prefix="set" suffixOverrides=",">
+            <if test="classIds != null and classIds != ''">class_ids = #{classIds},</if>
+        </trim>
+        where teacher_id = #{teacherId}
+    </update>
+
+    <insert id="insertTeacher" parameterType="Teacher">
+        insert into teacher
+            <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="Id != null and Id != ''">teacher_id,</if>
+            <if test="subjectId != null and subjectId != ''">subject_id,</if>
+            </trim>
+            <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="Id != null and Id != ''">#{Id},</if>
+            <if test="subjectId != null and subjectId != ''">#{subjectId},</if>
+            </trim>
+    </insert>
+
+    <select id="checkUserIdUnique" parameterType="Long" resultType="String">
+	    select count(1) from user where user_id=#{userId}
+	</select>
+
+</mapper>

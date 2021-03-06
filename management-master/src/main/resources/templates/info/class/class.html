@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('班级列表')" />
+    <th:block th:include="include :: layout-latest-css" />
+    <th:block th:include="include :: bootstrap-select-css" />
+</head>
+<body class="gray-bg">
+
+<div class="ui-layout-center">
+    <input type="hidden" id="classId">
+    <div class="container-div">
+        <div class="row">
+            <div class="col-sm-12 search-collapse">
+                <form id="teacher-form">
+                    <div class="select-list">
+                        <ul>
+                            <li>
+                                <label>年&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;级：</label>
+                                <select name="gradeId" id="gradeId">
+                                    <option th:each="g:${grade}" th:value="${g.gradeId}" th:text="${g.gradeName}"></option>
+                                </select>
+                            </li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+
+            <div class="btn-group-sm" id="toolbar" role="group">
+                <a class="btn btn-success" onclick="addClass()">
+                    <i class="fa fa-plus"></i> 新增
+                </a>
+            </div>
+
+            <div class="col-sm-12 select-table table-striped">
+                <table id="bootstrap-table"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:include="include :: footer" />
+<th:block th:include="include :: layout-latest-js" />
+<th:block th:include="include :: bootstrap-select-js" />
+<script th:inline="javascript">
+    var editFlag = "";
+    var removeFlag = "";
+
+    var prefix = ctx + "info/class";
+
+    $(function() {
+        $("#gradeId").selectpicker({
+            "width": 100,
+            "virtualScroll": 10,
+            "liveSearch": true,
+            "size": 10
+        });
+        var panehHidden = false;
+        if ($(this).width() < 769) {
+            panehHidden = true;
+        }
+        $('body').layout({ initClosed: panehHidden, west__size: 185 });
+        $('#gradeId').selectpicker('render');
+        queryTeacherList();
+    });
+
+    $('#gradeId').on('changed.bs.select', function () {
+        $.table.search();
+    });
+
+    function queryTeacherList() {
+        var options = {
+            url: prefix + "/list",
+            updateUrl: prefix + "/edit/{id}",
+            removeUrl: prefix + "/remove",
+            modalName: "班级",
+            columns: [
+                {
+                    field: 'classId',
+                    title: '班级id',
+                    visible: false
+                },
+                {
+                    field: 'className',
+                    title: '班级名',
+                    sortable: true,
+                    align: 'center'
+                },
+                {
+                    field: 'classNum',
+                    title: '班级号',
+                    align: 'center'
+                },
+                {
+                    field: 'gradeName',
+                    title: '所属年级',
+                    align: 'center'
+                },{
+                    field: 'studentNum',
+                    title: '学生数',
+                    align: 'center'
+                },{
+                    field: 'leaderName',
+                    title: '班主任',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        value = value == null ? '未设置' : value;
+                        return '<a class="btn btn-info btn-xs" href="javascript:void(0)" onclick="' +
+                            'leader(\'' + row.classId + '\')">' + value + '</a> ';
+                    }
+                },
+                {
+                    field: 'createTime',
+                    title: '创建时间',
+                    sortable: true,
+                    align: 'center'
+                },
+                {
+                    title: '操作',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        var actions = [];
+                        actions.push('<a class="btn btn-danger btn-xs ' + removeFlag + '" href="javascript:void(0)" onclick="removeClass(\'' + row.classId + '\',' + row.studentNum + ', \''+ row.className + '\')"><i class="fa fa-remove"></i>删除</a> ');
+                        return actions.join('');
+                    }
+                }]
+        };
+        $.table.init(options);
+    }
+
+    function leader(classId) {
+        $("#classId").val(classId);
+        $.modal.open("修改班主任", prefix + '/leader', '300', '490');
+    }
+
+    /* 添加班级 */
+    function addClass() {
+        $.modal.confirm("确认添加 " + $("#gradeId option:selected").text() + " 新的班级吗？", function() {
+            $.operate.post(prefix + '/add',{ gradeId: $("#gradeId option:selected").val()});
+        });
+    }
+
+    function removeClass(classId, studentNum, className) {
+        if(studentNum > 0){
+            $.modal.msgError('该班级目前还要学生，不能删除！！！');
+            return;
+        }
+        $.modal.confirm("你确认删除 " + className + " 吗？？？", function() {
+            $.operate.post(prefix + '/remove',{ classId: classId});
+        });
+    }
+
+</script>
+</body>
+</html>

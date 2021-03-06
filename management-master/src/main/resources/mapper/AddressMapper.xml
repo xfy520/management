@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.AddressMapper">
+
+    <resultMap type="Address" id="AddressResult">
+        <id     property="addressId"     column="code"     />
+        <id     property="parentId"     column="parent_id"     />
+        <result property="addressName"   column="name"   />
+        <result property="ancestors"   column="ancestors"   />
+        <result property="ancestorsName"   column="ancestors_name"   />
+    </resultMap>
+
+
+    <select id="selectProvince" parameterType="Long" resultMap="AddressResult">
+		SELECT * FROM address WHERE parent_id = #{addressId}
+		order by parent_id, code
+    </select>
+
+</mapper>

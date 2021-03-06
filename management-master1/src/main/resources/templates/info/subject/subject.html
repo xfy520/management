@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('科目列表')" />
+    <th:block th:include="include :: layout-latest-css" />
+    <th:block th:include="include :: ztree-css" />
+</head>
+<body class="gray-bg">
+<div class="ui-layout-center">
+    <div class="container-div">
+        <div class="row">
+            <div class="btn-group-sm" id="toolbar" role="group">
+                <a class="btn btn-success" onclick="addSubject()">
+                    <i class="fa fa-plus"></i> 新增
+                </a>
+                <a class="btn btn-primary single disabled" onclick="editSubject()">
+                    <i class="fa fa-edit"></i> 修改
+                </a>
+                <a class="btn btn-danger multiple disabled" onclick="$.operate.removeAll()">
+                    <i class="fa fa-remove"></i> 删除
+                </a>
+            </div>
+
+            <div class="col-sm-12 select-table table-striped">
+                <table id="bootstrap-table"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:include="include :: footer" />
+<th:block th:include="include :: layout-latest-js" />
+<th:block th:include="include :: ztree-js" />
+<script th:inline="javascript">
+
+    var editFlag = "";
+    var removeFlag = "";
+
+    var prefix = ctx + "info/subject";
+
+    $(function() {
+        var panehHidden = false;
+        if ($(this).width() < 769) {
+            panehHidden = true;
+        }
+        $('body').layout({ initClosed: panehHidden, west__size: 185 });
+        querySubjectList();
+    });
+
+    function querySubjectList() {
+        var options = {
+            url: prefix + "/list",
+            updateUrl: prefix + "/edit/{id}",
+            removeUrl: prefix + "/remove",
+            modalName: "科目",
+            columns: [{
+                checkbox: true
+            },
+                {
+                    field: 'subjectId',
+                    title: '科目id',
+                    visible: false
+                },{
+                    field: 'subjectNumber',
+                    title: '科目编号',
+                },
+                {
+                    field: 'subjectName',
+                    title: '科目名',
+                    align: 'center'
+                },
+                {
+                    field: 'elective',
+                    title: '是否必修',
+                    align: 'center',
+                    formatter: function (value, row, index) {
+                        if (value == 0) {
+                            return '<a><i class=\"fa fa-toggle-off text-info fa-2x\" onclick="enable(\'' + row.subjectId + '\')"></i></a>';
+                        } else {
+                            return '<a><i class=\"fa fa-toggle-on text-info fa-2x\" onclick="disable(\'' + row.subjectId + '\')"></i></a>';
+                        }
+                    }
+                },
+                {
+                    field: 'remark',
+                    title: '备注',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        return $.table.tooltip(value);
+                    }
+                },
+                {
+                    field: 'createTime',
+                    title: '创建时间',
+                    sortable: true,
+                    align: 'center'
+                },
+                {
+                    title: '操作',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        var actions = [];
+                        actions.push('<a class="btn btn-success btn-xs ' + editFlag + '" href="javascript:void(0)" onclick="editSubject(\'' + row.subjectId + '\');"><i class="fa fa-edit"></i>编辑</a> ');
+                        actions.push('<a class="btn btn-danger btn-xs ' + removeFlag + '" href="javascript:void(0)" onclick="$.operate.remove(\'' + row.subjectId + '\')"><i class="fa fa-remove"></i>删除</a> ');
+                        return actions.join('');
+                    }
+                }]
+        };
+        $.table.init(options);
+    }
+
+    /* 添加学生 */
+    function addSubject() {
+        $.modal.open("添加学科", prefix + '/add', '800', '490');
+    }
+
+    function editSubject(id) {
+        $.operate.edit({id: id, w: '800', h: '490'});
+    }
+
+    /* 修改为选修 */
+    function disable(subjectId) {
+        $.modal.confirm("确认要修改为选修吗？", function() {
+            $.operate.post(prefix + "/changeElective", { "subjectId": subjectId, "elective": 0 });
+        })
+    }
+
+    /* 修改为必修 */
+    function enable(subjectId) {
+        $.modal.confirm("确认要修改为必修吗？", function() {
+            $.operate.post(prefix + "/changeElective", { "subjectId": subjectId, "elective": 1 });
+        })
+    }
+</script>
+</body>
+</html>

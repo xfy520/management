@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.info.ClassMapper">
+
+    <resultMap type="Class" id="ClassResult">
+        <id     property="gradeId"          column="grade_id"      />
+        <result property="classId"        column="class_id"   />
+        <result property="className"           column="class_name"    />
+        <result property="classNum"           column="class_num"    />
+        <result property="gradeName"       column="grade_name"    />
+        <result property="studentNum"         column="student_num"        />
+        <result property="teacherName"         column="teacher_name"  />
+        <result property="teacherId"         column="teacher_id"  />
+    </resultMap>
+
+
+    <insert id="insertClass" parameterType="Class" useGeneratedKeys="true" keyProperty="id">
+        insert into class
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+        <if test="classId != null and classId != ''">id,</if>
+        <if test="gradeId != null and gradeId != ''">grade_id,</if>
+        <if test="classNum != null and classNum != ''">class_num,</if>
+        <if test="teacherId != null and teacherId != ''">teacher_id,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+        <if test="classId != null and classId != ''">#{classId},</if>
+        <if test="gradeId != null and gradeId != ''">#{gradeId},</if>
+        <if test="classNum != null and classNum != ''">#{classNum},</if>
+        <if test="teacherId != null and teacherId != ''">#{teacherId},</if>
+        </trim>
+    </insert>
+
+    <select id="selectClassList" resultMap="ClassResult" parameterType="Class">
+        select (select count(s.student_id) from student s, user u where s.class_id = c.id and s.student_id = u.id and
+        u.del_flag = '0') student_num, c.id class_id, concat( g.grade_name, '(', c.class_num, ')班' ) class_name, c.class_num,
+	    c.teacher_id, (select u.user_name from user u where u.id = c.teacher_id) teacher_name, g.id grade_id, g.grade_name
+        from class c, grade g where c.grade_id = #{gradeId} and g.id = #{gradeId} group by c.id
+    </select>
+
+    <select id="searchClassList" resultMap="ClassResult">
+        SELECT c.id class_id, concat( g.grade_name, '(', c.class_num, ')班' ) class_name, c.class_num  FROM class c, grade g
+        WHERE c.grade_id = #{gradeId} AND g.id = c.grade_id  AND FIND_IN_SET( c.id,
+	    ( SELECT GROUP_CONCAT( DISTINCT ( t.class_ids ) ) class_ids FROM teacher t WHERE t.subject_id = #{subjectId} )
+	    ) = 0  UNION ALL  SELECT c.id class_id, concat( g.grade_name, '(', c.class_num, ')班' ) class_name, c.class_num
+        FROM class c, grade g WHERE c.grade_id = #{gradeId} AND g.id = c.grade_id AND FIND_IN_SET( c.id,
+	    ( SELECT GROUP_CONCAT( DISTINCT ( t.class_ids ) ) class_ids FROM teacher t WHERE t.teacher_id = #{teacherId} )
+	    ) > 0 ORDER BY class_num
+    </select>
+
+    <update id="updateClassLeader" parameterType="Class">
+        update class
+        <set>
+            <if test="teacherId != null and teacherId != ''">teacher_id = #{teacherId},</if>
+        </set>
+        where id = #{classId}
+    </update>
+
+    <select id="selectMaxClassNum" parameterType="String" resultType="Integer">
+        select max(class_num) from class where grade_id = #{gradeId}
+    </select>
+
+    <delete id="deleteClass" parameterType="String">
+        delete from class where id = #{classId}
+    </delete>
+
+    <select id="selectExamineClassList" resultMap="ClassResult" parameterType="String">
+        SELECT c.id class_id, concat( g.grade_name, '(', c.class_num, ')班' )  class_name from class c,grade g where g.id = c.grade_id and FIND_IN_SET(c.id, (SELECT CASE e.exam_type
+            WHEN '1' THEN
+                (SELECT GROUP_CONCAT( DISTINCT ( c.id ) ) from class c where c.grade_id = e.class_ids)
+            WHEN '2' THEN
+              (SELECT GROUP_CONCAT( DISTINCT ( c.id ) ) from class c where c.grade_id = e.class_ids)
+            ELSE
+                e.class_ids
+        END class_ids
+         FROM exam e where e.id = #{examId})) > 0
+    </select>
+
+    <select id="selectExamClassList" resultMap="ClassResult" parameterType="Teacher">
+        SELECT c.id class_id, concat( g.grade_name, '(', c.class_num, ')班' ) class_name, c.teacher_id FROM class c, grade g
+        WHERE c.grade_id = g.id AND FIND_IN_SET( c.id,
+	    ( SELECT GROUP_CONCAT( DISTINCT ( t.class_ids ) ) class_ids FROM teacher t WHERE t.teacher_id = #{Id} )
+	    ) > 0
+        order by class_num asc
+    </select>
+
+</mapper>

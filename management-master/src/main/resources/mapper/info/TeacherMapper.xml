@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.info.TeacherMapper">
+
+    <resultMap type="Teacher" id="TeacherResult">
+        <id     property="userId"       column="user_id"      />
+        <result property="loginName"    column="login_name"   />
+        <result property="userName"     column="user_name"    />
+        <result property="idNumber"     column="id_number"    />
+        <result property="email"        column="email"        />
+        <result property="phoneNumber"  column="phone_number"  />
+        <result property="sex"          column="sex"          />
+        <result property="avatar"       column="avatar"       />
+        <result property="password"     column="password"     />
+        <result property="delFlag"      column="del_flag"     />
+        <result property="createBy"     column="create_by"    />
+        <result property="createTime"   column="create_time"  />
+        <result property="updateBy"     column="update_by"    />
+        <result property="updateTime"   column="update_time"  />
+        <result property="remark"       column="remark"       />
+        <result property="addressName"  column="ancestors_name"/>
+        <result property="addressParentIds"  column="ancestors"/>
+        <result property="address"  	column="address"/>
+        <result property="className"  	column="class_name"/>
+        <result property="classIds"  	column="class_ids"/>
+        <result property="subjectId"  	column="subject_id"/>
+        <result property="subjectName"  column="subject_name"/>
+        <result property="job"  	column="job"/>
+    </resultMap>
+
+    <select id="selectTeacherList" parameterType="Teacher" resultMap="TeacherResult">
+        select u.user_id, u.login_name, u.user_name,u.id_number, u.email, u.avatar, u.phone_number, u.password, u.sex,
+        u.del_flag, u.create_by, u.create_time, u.remark, a.ancestors_name, a.code address, a.ancestors, s.subject_name,
+        s.id subject_id, t.job, (select GROUP_CONCAT( DISTINCT ( concat( g.grade_name, '(', c.class_num, ')班' ) ) )
+        from class c, grade g where g.id = c.grade_id and FIND_IN_SET(c.id, t.class_ids) > 0) class_name, t.class_ids
+        from user u,teacher t, address a, subject s where u.del_flag = '0' and u.perms = 2 and
+        u.user_id = t.teacher_id and a.code = u.address and t.subject_id=s.id
+        <if test="subjectId != null and subjectId != ''">
+            and t.subject_id = #{subjectId}
+        </if>
+        <if test="loginName != null and loginName != ''">
+            and u.login_name like concat('%', #{loginName}, '%')
+        </if>
+        <if test="userName != null and userName != ''">
+            and u.user_name like concat('%', #{userName}, '%')
+        </if>
+        <if test="phoneNumber != null and phoneNumber != ''">
+            and u.phone_number = #{phoneNumber}
+        </if>
+        <if test="params.beginTime != null and params.beginTime != ''"><!-- 开始时间检索 -->
+            and date_format(u.create_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+        </if>
+        <if test="params.endTime != null and params.endTime != ''"><!-- 结束时间检索 -->
+            and date_format(u.create_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+        </if>
+    </select>
+
+    <select id="selectTeacherById" parameterType="Teacher" resultMap="TeacherResult">
+		select u.user_id, u.login_name, u.user_name,u.id_number, u.email, u.avatar, u.phone_number, u.password, u.sex,
+		u.del_flag, u.create_by, u.create_time, u.remark, a.ancestors_name, a.code address, a.ancestors, t.job
+		from user u,teacher t, address a where u.user_id = #{userId} and u.user_id = t.teacher_id and a.code = u.address
+	</select>
+
+    <delete id="deleteTeacherByIds" parameterType="Long">
+        update teacher set del_flag = '2' where teacher_id in
+        <foreach collection="array" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </delete>
+
+    <update id="updateTeacher" parameterType="Teacher">
+        update teacher
+        <set>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            <if test="job != null and job != ''">job = #{job},</if>
+            update_time = sysdate()
+        </set>
+        where teacher_id = #{userId}
+    </update>
+
+    <update id="updateTeacherClass" parameterType="Teacher">
+        update teacher
+        <set>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            <if test="classIds != null and classIds != ''">class_ids = #{classIds},</if>
+            update_time = sysdate()
+        </set>
+        where teacher_id = #{userId}
+    </update>
+
+    <insert id="insertTeacher" parameterType="Teacher" useGeneratedKeys="true" keyProperty="rollId">
+        insert into teacher(
+        <if test="userId != null and userId != ''">teacher_id,</if>
+        <if test="subjectId != null and subjectId != ''">subject_id,</if>
+        <if test="createBy != null and createBy != ''">create_by,</if>
+        <if test="job != null and job != ''">job,</if>
+        create_time
+        )values(
+        <if test="userId != null and userId != ''">#{userId},</if>
+        <if test="subjectId != null and subjectId != ''">#{subjectId},</if>
+        <if test="createBy != null and createBy != ''">#{createBy},</if>
+        <if test="job != null and job != ''">#{job},</if>
+        sysdate()
+        )
+    </insert>
+</mapper>

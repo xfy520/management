@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.info.SubjectMapper">
+
+    <resultMap type="Subject" id="SubjectResult">
+        <id     property="subjectId"       column="subject_id"      />
+        <result property="subjectName"    column="subject_name"   />
+        <result property="elective"     column="elective"    />
+        <result property="sign"         column="sign"    />
+        <result property="createBy"     column="create_by"    />
+        <result property="createTime"   column="create_time"  />
+        <result property="updateBy"     column="update_by"    />
+        <result property="updateTime"   column="update_time"  />
+        <result property="remark"       column="remark"       />
+    </resultMap>
+
+    <select id="selectExamSubjectList" resultMap="SubjectResult" parameterType="Teacher">
+        select id subject_id, subject_name, elective, sign, create_by, create_time, update_by, update_time, remark
+        from subject s where #{perms}  &lt;= 2
+        <if test="perms != null and perms != '' and perms gte 2 and perms lte 2">
+            AND FIND_IN_SET (
+            s.id,
+            ( SELECT subject_ids FROM grade WHERE leader = #{userId} UNION ALL SELECT subject_id subject_ids FROM teacher WHERE teacher_id = #{userId} LIMIT 1 )
+            ) > 0
+        </if>
+        order by create_time asc
+    </select>
+
+    <delete id="deleteSubjectByIds" parameterType="Long">
+        delete from subject where id in
+        <foreach collection="array" item="subjectId" open="(" separator="," close=")">
+            #{subjectId}
+        </foreach>
+    </delete>
+
+    <insert id="insertSubject" parameterType="Subject" useGeneratedKeys="true" keyProperty="subjectId">
+        insert into subject(
+        <if test="subjectId != null and subjectId != 0">id,</if>
+        <if test="subjectName != null and subjectName != ''">subject_name,</if>
+        <if test="elective != null and elective != ''">elective,</if>
+        <if test="sign != null and sign != ''">sign,</if>
+        <if test="createBy != null and createBy != ''">create_by,</if>
+        create_time
+        )values(
+        <if test="subjectId != null and subjectId != ''">#{subjectId},</if>
+        <if test="subjectName != null and subjectName != ''">#{subjectName},</if>
+        <if test="elective != null and elective != ''">#{elective},</if>
+        <if test="sign != null and sign != ''">#{sign},</if>
+        <if test="createBy != null and createBy != ''">#{createBy},</if>
+        sysdate()
+        )
+    </insert>
+
+    <update id="updateSubject" parameterType="Subject">
+        update subject
+        <set>
+            <if test="elective != null and elective != ''">elective = #{elective},</if>
+            <if test="remark != null and remark != ''">remark = #{remark},</if>
+            <if test="sign != null and sign != ''">sign = #{sign},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </set>
+        where id = #{subjectId}
+    </update>
+
+    <select id="selectSubjectList" parameterType="Subject" resultMap="SubjectResult">
+        select id subject_id, subject_name, elective, sign, create_by, create_time, update_by, update_time, remark
+        from subject order by create_time asc
+    </select>
+
+    <select id="selectSubjectById" parameterType="Subject" resultMap="SubjectResult">
+        select id subject_id, subject_name, elective, sign, create_by, create_time, update_by, update_time, remark
+        from subject where id = #{subjectId}
+    </select>
+
+    <select id="checkSubjectNameUnique" parameterType="String" resultType="String">
+        select count(1) from subject where subject_name=#{subjectName}
+    </select>
+
+</mapper>

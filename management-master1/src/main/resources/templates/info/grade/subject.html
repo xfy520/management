@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('分配科目')"/>
+    <th:block th:include="include :: select2-css"/>
+</head>
+<body>
+<div class="main-content">
+    <form id="form-subject-grade" class="form-horizontal">
+        <div class="form-group">
+            <label class="col-sm-4 control-label">选择科目：</label>
+            <div class="col-sm-8">
+                <select id="editSubjectIds" class="form-control select2-multiple" multiple required>
+                    <option th:each="sub:${subject}" th:value="${sub.subjectId}" th:text="${sub.subjectName}"></option>
+                </select>
+            </div>
+        </div>
+    </form>
+</div>
+
+<th:block th:include="include :: footer"/>
+<th:block th:include="include :: select2-js"/>
+<script th:inline="javascript">
+
+    var prefix = ctx + "info/grade";
+
+    function submitHandler() {
+        if ($.validate.form()) {
+            var data = $("#form-subject-grade").serializeArray();
+            var subjectIds = $.form.selectSelects("editSubjectIds");
+            data.push({"name": "gradeId", "value": parent.$("#gradeId").val()});
+            data.push({"name": "subjectIds", "value": subjectIds});
+            $.operate.save(prefix + "/subject", data);
+        }
+    }
+
+    $(function () {
+        var parentSubjectIds = parent.$("#subjectIds").val().split(",").filter(item=> {
+            if ([[${subject}]].find(function (obj) {
+                return obj.subjectId == item;
+            }) != undefined) {
+                return item;
+            }
+        });
+        parentSubjectIds.length != 0 ? $('#editSubjectIds').val(parentSubjectIds).trigger("change") : null;
+    });
+</script>
+</body>
+</html>

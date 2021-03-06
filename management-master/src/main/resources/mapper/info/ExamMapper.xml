@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.info.ExamMapper">
+
+    <resultMap type="Exam" id="ExamResult">
+        <id     property="examId"           column="exam_id"      />
+        <id     property="examNumber"       column="exam_number"      />
+        <result property="examName"         column="exam_name"   />
+        <result property="examType"         column="exam_type"    />
+        <result property="examNum"          column="exam_num"    />
+        <result property="subjectIds"        column="subject_ids"    />
+        <result property="subjectName"      column="subject_name"    />
+        <result property="classIds"         column="class_ids"        />
+        <result property="className"        column="class_name"  />
+        <result property="startDate"        column="start_date"  />
+        <result property="endDate"          column="end_date"  />
+        <result property="isExam"           column="is_exam"  />
+        <result property="createBy"         column="create_by"    />
+        <result property="createTime"       column="create_time"  />
+        <result property="updateTime"       column="update_time"  />
+    </resultMap>
+
+    <select id="selectExamById" parameterType="Long" resultMap="ExamResult">
+        select e.id exam_id, e.exam_name, e.exam_type, e.subject_ids, e.class_ids,
+        e.start_date, e.end_date from exam e where e.id = #{examId}
+    </select>
+
+    <insert id="insertExam" parameterType="Exam" useGeneratedKeys="true" keyProperty="id">
+        insert into exam(
+        <if test="examId != null and examId != ''">id,</if>
+        <if test="examNumber != null and examNumber != ''">exam_number,</if>
+        <if test="examName != null and examName != ''">exam_name,</if>
+        <if test="examType != null and examType != ''">exam_type,</if>
+        <if test="subjectIds != null and subjectIds != ''">subject_ids,</if>
+        <if test="classIds != null and classIds != ''">class_ids,</if>
+        <if test="createBy != null and createBy != ''">create_by,</if>
+        start_date,end_date, create_time
+        )values(
+        <if test="examId != null and examId != ''">#{examId},</if>
+        <if test="examNumber != null and examNumber != ''">#{examNumber},</if>
+        <if test="examName != null and examName != ''">#{examName},</if>
+        <if test="examType != null and examType != ''">#{examType},</if>
+        <if test="subjectIds != null and subjectIds != ''">#{subjectIds},</if>
+        <if test="classIds != null and classIds != ''">#{classIds},</if>
+        <if test="createBy != null and createBy != ''">#{createBy},</if>
+        #{startDate},#{endDate},sysdate()
+        )
+    </insert>
+
+    <delete id="deleteExamByIds" parameterType="Long">
+        delete from exam where id in
+        <foreach collection="array" item="examId" open="(" separator="," close=")">
+            #{examId}
+        </foreach>
+    </delete>
+
+    <update id="isExam">
+        update exam e set e.is_exam = '1', e.update_time = sysdate() where e.id = #{examId}
+    </update>
+
+    <select id="selectExamList" resultMap="ExamResult" parameterType="Exam">
+        SELECT e.id exam_id, e.exam_number, e.exam_name, e.exam_type, e.subject_ids, e.create_by, e.create_time,
+            e.update_time, e.start_date, e.end_date, e.is_exam,
+        CASE
+            e.exam_type
+            WHEN '1' THEN
+            (
+        SELECT GROUP_CONCAT( DISTINCT ( c.id ) ) FROM class c WHERE c.grade_id = e.class_ids
+            ) ELSE e.class_ids
+            END class_ids,
+            (
+        SELECT GROUP_CONCAT( DISTINCT ( s.subject_name ) ) FROM SUBJECT s WHERE FIND_IN_SET( s.id, e.subject_ids ) > 0
+            ) subject_name,
+        CASE
+            e.exam_type
+            WHEN '1' THEN
+            (
+            SELECT count( st.student_id ) FROM student st WHERE st.grade_id = e.class_ids AND st.del_flag = '0' ) ELSE (
+        SELECT count( st.student_id ) FROM student st, class c WHERE st.class_id = c.id AND st.del_flag = '0'
+            AND FIND_IN_SET( c.id, e.class_ids ) > 0
+            )
+            END exam_num,
+        CASE
+            e.exam_type
+            WHEN '1' THEN
+            (
+        SELECT GROUP_CONCAT( DISTINCT ( concat( g.grade_name, '(', c.class_num, ')班' ) ) ) FROM class c, grade g
+        WHERE c.grade_id = e.class_ids AND g.id = c.grade_id
+            ) ELSE (
+        SELECT GROUP_CONCAT( DISTINCT ( concat( g.grade_name, '(', c.class_num, ')班' ) ) ) FROM class c, grade g
+        WHERE c.grade_id = g.id AND FIND_IN_SET( c.id, e.class_ids ) > 0
+            )
+            END class_name
+        FROM exam e WHERE e.create_by = #{createBy} GROUP BY e.id
+    </select>
+
+    <update id="updateExam" parameterType="Exam">
+        update exam
+        <set>
+            <if test="examName != null and examName != ''">exam_name = #{examName},</if>
+            <if test="examNumber != null and examNumber != ''">exam_number = #{examNumber},</if>
+            <if test="examType != null and examType != ''">exam_type = #{examType},</if>
+            <if test="subjectIds != null and subjectIds != ''">subject_ids = #{subjectIds},</if>
+            <if test="classIds != null and classIds != ''">class_ids = #{classIds},</if>
+            start_date = #{startDate}, end_date = #{endDate}, update_time = sysdate()
+        </set>
+        where id = #{examId}
+    </update>
+
+
+</mapper>

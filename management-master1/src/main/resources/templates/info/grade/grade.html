@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('年级列表')" />
+    <th:block th:include="include :: layout-latest-css" />
+</head>
+<body class="gray-bg">
+
+<div class="ui-layout-center">
+    <input type="hidden" id="gradeId">
+    <input type="hidden" id="subjectIds">
+    <div class="col-sm-12 select-table table-striped">
+        <table id="bootstrap-table" data-show-columns="false"></table>
+    </div>
+</div>
+
+<th:block th:include="include :: footer" />
+<th:block th:include="include :: layout-latest-js" />
+<script th:inline="javascript">
+
+    var prefix = ctx + "info/grade";
+    $(function() {
+        queryTeacherList();
+    });
+
+    function queryTeacherList() {
+        var options = {
+            url: prefix + "/list",
+            showSearch: false,
+            showRefresh: false,
+            showColumns: false,
+            showToggle: false,
+            pagination: false,
+            modalName: "年级",
+            columns: [
+                {
+                    field: 'gradeId',
+                    title: '年级Id',
+                    visible: false
+                },
+                {
+                    field: 'gradeName',
+                    title: '年级名称',
+                    align: 'center'
+                },
+                {
+                    field: 'classNum',
+                    title: '班级数',
+                    align: 'center'
+                },{
+                    field: 'studentNum',
+                    title: '学生数',
+                    align: 'center'
+                },
+                {
+                    field: 'subjectName',
+                    title: '所上科目',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        value = value == null ? "未分配科目" : value;
+                        var subjectIds = row.subjectIds == null ? "" : row.subjectIds;
+                        return tooltip(value, row.gradeId, subjectIds);
+                    }
+                }]
+        };
+        $.table.init(options);
+    }
+
+    // 列超出指定长度浮动提示 target（copy单击复制文本 open弹窗打开文本）
+    function tooltip (value, gradeId, subjectIds) {
+        var _value = $.common.nullToStr(value);
+        var _text = _value.substr(0, 20) + "...";
+        _value = _value.replace(/\'/g,"&apos;");
+        _value = _value.replace(/\"/g,"&quot;");
+        var actions = [];
+        actions.push($.common.sprintf('<input class="tooltip-show" style="opacity: 0;position: absolute;z-index:-1" type="text" value="%s"/>', _value));
+        actions.push($.common.sprintf('<a href="javascript:void(0);" onclick="editSubject(\'' + gradeId + '\', \'' + subjectIds + '\');' +
+            ' " class="tooltip-show" data-toggle="tooltip" data-target="%s" title="%s">%s</a>', 'copy', _value, _text));
+        return actions.join('');
+    }
+    
+    function editSubject(gradeId, subjectIds) {
+        $("#gradeId").val(gradeId);
+        $("#subjectIds").val(subjectIds);
+        $.modal.open("分配科目", prefix + "/subject", 300, 450);
+    }
+
+</script>
+</body>

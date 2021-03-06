@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.school.management.mapper.info.GradeMapper">
+
+    <resultMap type="Grade" id="GradeResult">
+        <id     property="gradeId"          column="grade_id"      />
+        <result property="gradeName"        column="grade_name"   />
+        <result property="gradeNum"         column="grade_num"        />
+        <result property="classNum"         column="class_num"  />
+        <result property="subjectIds"      column="subject_ids"  />
+        <result property="subjectName"      column="subject_name"  />
+        <result property="studentNum"      column="student_num"  />
+    </resultMap>
+
+    <select id="selectGradeList" resultMap="GradeResult" parameterType="String">
+        SELECT g.id grade_id, g.grade_name, g.grade_num, g.subject_ids,
+        ( SELECT count( c.id ) FROM class c WHERE c.grade_id = g.id ) class_num,
+        ( SELECT GROUP_CONCAT( DISTINCT ( su.subject_name ) ) FROM SUBJECT su
+        WHERE FIND_IN_SET( su.id, g.subject_ids ) > 0 ) subject_name,
+        ( SELECT count( st.student_id ) FROM student st WHERE st.grade_id = g.id ) student_num
+        FROM grade g where 1 = 1
+        <if test="subjectId != null and subjectId != ''">
+            and FIND_IN_SET( #{subjectId}, g.subject_ids) > 0
+        </if>
+        GROUP BY g.id ORDER BY grade_num
+    </select>
+
+    <update id="updateSubject" parameterType="Grade">
+        update grade
+        <trim prefix="set" suffixOverrides=",">
+            <if test="subjectIds != null and subjectIds != ''">subject_ids = #{subjectIds},</if>
+        </trim>
+        where id = #{gradeId}
+    </update>
+
+</mapper>
